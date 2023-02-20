@@ -1,0 +1,53 @@
+﻿<tr>
+    <td><input @bind-value=@game.Letter disabled="true" /></td>
+    <td><input @bind-value=@game.City /></td>
+    <td><input @bind-value=@game.Village /></td>
+    <td><input @bind-value=@game.State /></td>
+    <td><input @bind-value=@game.Mountain /></td>
+    <td><input @bind-value=@game.River /></td>
+    <td><input @bind-value=@game.Plant /></td>
+    <td><button @onclick=@HandleClick /></td>
+</tr>
+
+@code {
+    [Parameter] public EventCallback<Game> OnClick { get; set; }
+    [Parameter] public char? Letter { get; set; }
+    [Parameter] public string? City { get; set; }
+    [Parameter] public string? Village { get; set; }
+    [Parameter] public string? State { get; set; }
+    [Parameter] public string? Mountain { get; set; }
+    [Parameter] public string? River { get; set; }
+    [Parameter] public string? Plant { get; set; }
+
+    public class Game
+    {
+        public char? Letter { get; set; }
+        public string? City { get; set; }
+        public string? Village { get; set; }
+        public string? State { get; set; }
+        public string? Mountain { get; set; }
+        public string? River { get; set; }
+        public string? Plant { get; set; }
+    }
+
+    Game game = new Game();
+
+    async Task HandleClick()
+    {
+        await OnClick.InvokeAsync(game);
+    }
+
+    protected override void OnParametersSet()
+    {
+        game = new Game
+            {
+                Letter = Letter,
+                City = City,
+                Village = Village,
+                State = State,
+                Mountain = Mountain,
+                River = River,
+                Plant = Plant
+            };
+    }
+}

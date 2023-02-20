@@ -1,0 +1,95 @@
+﻿@page "/fastgeography"
+@inject HttpClient Http
+@using static FastGeography.Client.Shared.GameRow;
+<h3>Game</h3>
+
+<button @onclick="StartNewGame">Start new game on letter...</button>
+
+@if (games == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!games.Any())
+{
+    <p><em>No game started.  Please start one.</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Letter</th>
+                <th>City</th>
+                <th>Village</th>
+                <th>State</th>
+                <th>River</th>
+                <th>Mountain</th>
+                <th>Plant</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (Game game in games)
+            {
+                <GameRow Letter=@game.Letter
+                 City=@game.City
+                 Village=@game.Village
+                 State=@game.State
+                 River=@game.River
+                 Mountain=@game.Mountain
+                 Plant=@game.Plant
+                 OnClick=@HandleClick />
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    public IList<Game> games { get; set; } = new List<Game>();
+    private Game newGame;
+
+    private void StartNewGame()
+    {
+        Random random = new Random();
+        var letter = (char)('A' + random.Next(0, 26));
+        newGame = new Game();
+        newGame.Letter = letter;
+        newGame.City = string.Empty;
+        newGame.State=string.Empty;
+        newGame.Village=string.Empty;
+        newGame.River=string.Empty;
+        newGame.Mountain=string.Empty;
+        newGame.Plant=string.Empty;
+
+
+        games.Add(newGame);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //games = await Http.GetFromJsonAsync<List<Game>>("sample-data/fastgeography.json");
+    }
+
+    async Task HandleClick(Game game)
+    {
+        char? enteredLetter = game.Letter;
+        string? enteredCity = game.City;
+        string? enteredVillage = game.Village;
+        string? enteredState = game.State;
+        string? enteredRiver = game.River;
+        string? enteredMountain = game.Mountain;
+        string? enteredPlant = game.Plant;
+
+        games.Add(new Game()
+            {
+                Letter = enteredLetter,
+                City = enteredCity,
+                Village = enteredVillage,
+                State = enteredState,
+                River = enteredRiver,
+                Mountain = enteredMountain,
+                Plant = enteredPlant
+            });
+
+        //Create JSON from the fields above and call API to store to DB.
+    }
+}
