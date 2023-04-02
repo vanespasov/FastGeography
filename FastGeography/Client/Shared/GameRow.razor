@@ -28,6 +28,16 @@
         public string? Mountain { get; set; }
         public string? River { get; set; }
         public string? Plant { get; set; }
+
+        public int CityPoint { get { return Points.GetValueOrDefault("city"); } set { Points.Add("city", value); } }
+        public int VillagePoint { get { return Points.GetValueOrDefault("vilage"); } set { Points.Add("vilage", value); } }
+        public int StatePoint { get { return Points.GetValueOrDefault("state"); } set { Points.Add("state", value); } }
+        public int MountainPoint { get { return Points.GetValueOrDefault("mountain"); } set { Points.Add("mountain", value); } }
+        public int RiverPoint { get { return Points.GetValueOrDefault("river"); } set { Points.Add("river", value); } }
+        public int PlantPoint { get; set; }
+        public Dictionary<string, int> Points { get; set; } = new Dictionary<string, int>();
+
+        public int TotalPoints => Points.Sum(x => x.Value); 
     }
 
     Game game = new Game();

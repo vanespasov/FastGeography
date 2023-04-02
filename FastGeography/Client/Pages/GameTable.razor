@@ -1,5 +1,7 @@
 ﻿@page "/fastgeography"
-@inject HttpClient Http
+@using BingMapsRESTToolkit;
+@using System.Net.Http.Json;
+@inject HttpClient HttpClient;
 @using static FastGeography.Client.Shared.GameRow;
 <h3>Game</h3>
 
@@ -54,18 +56,18 @@ else
         newGame = new Game();
         newGame.Letter = letter;
         newGame.City = string.Empty;
-        newGame.State=string.Empty;
-        newGame.Village=string.Empty;
-        newGame.River=string.Empty;
-        newGame.Mountain=string.Empty;
-        newGame.Plant=string.Empty;
-
+        newGame.State = string.Empty;
+        newGame.Village = string.Empty;
+        newGame.River = string.Empty;
+        newGame.Mountain = string.Empty;
+        newGame.Plant = string.Empty;
 
         games.Add(newGame);
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //TODO: load the games that the user has played. Load them from the Redis cache.
         //games = await Http.GetFromJsonAsync<List<Game>>("sample-data/fastgeography.json");
     }
 
@@ -79,6 +81,13 @@ else
         string? enteredMountain = game.Mountain;
         string? enteredPlant = game.Plant;
 
+        //TODO: Validate the fields above by invoking the BingMapsRESTToolkit
+        game.CityPoint = await CheckGeoLocation(game.City, EntityType.PopulatedPlace.ToString());
+        game.VillagePoint = await CheckGeoLocation(game.Village, EntityType.PopulatedPlace.ToString());
+        game.StatePoint = await CheckGeoLocation(game.State, EntityType.AdminDivision1.ToString());
+        game.RiverPoint = await CheckGeoLocation(game.River, "River");
+        game.MountainPoint = await CheckGeoLocation(game.Mountain, "Mountain");
+        
         games.Add(new Game()
             {
                 Letter = enteredLetter,
@@ -91,5 +100,38 @@ else
             });
 
         //Create JSON from the fields above and call API to store to DB.
+    }
+
+    private string bingMapsKey = "AvgAK8EVgx50WkOB6cyA8ckUM5ku4U3kGJvxthKwE75_S4-c-XlTP82kUom8baQk";
+
+    private async Task<int> CheckGeoLocation(string location, string locationType)
+    {
+        if(string.IsNullOrEmpty(location))
+        {
+            return 0;
+        }
+
+        // Send the geocode request and get the response
+        return await GetResourcesFromRequest(location, locationType);
+    }
+
+    private async Task<int> GetResourcesFromRequest(string location, string locationType)
+    {
+        var points = 0;
+        //var response = await HttpClient.GetAsync($"bingmaps/{location}");
+        var response = await HttpClient.GetAsync($"bingmaps/{location}/{locationType}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Get the location type from the response body
+            var result = await response.Content.ReadAsStringAsync();
+            var termPoints = result.Split(":");
+            points = int.Parse(termPoints[1]);
+        }
+        else
+        {
+            // Handle the error here...
+        }
+        return points;
     }
 }
