@@ -54,7 +54,7 @@
 
         private bool LocationExists(Location location, string locationType)
         {
-            return location != null && location.EntityType == locationType;
+            return location != null && location.EntityType.Contains(locationType);
         }
     }
 }
