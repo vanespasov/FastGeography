@@ -265,3 +265,4 @@ paket-files/
 # Visual Studio Team Services (TFS) file created when running tasks
 .taskkey
 /config/App.qa08.config
+/.vscode
