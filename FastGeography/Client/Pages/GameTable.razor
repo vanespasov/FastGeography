@@ -1,6 +1,7 @@
 ﻿@page "/fastgeography"
 @using BingMapsRESTToolkit;
 @using System.Net.Http.Json;
+@using System.Linq;
 @inject HttpClient HttpClient;
 @using static FastGeography.Client.Shared.GameRow;
 <h3>Game</h3>
@@ -17,6 +18,8 @@ else if (!games.Any())
 }
 else
 {
+    <br />
+    <label>Total points: @totalPoints</label>
     <table class="table">
         <thead>
             <tr>
@@ -47,6 +50,7 @@ else
 
 @code {
     public IList<Game> games { get; set; } = new List<Game>();
+    private int totalPoints = 0;
     private Game newGame;
 
     private void StartNewGame()
@@ -87,7 +91,7 @@ else
         game.StatePoint = await CheckGeoLocation(game.State, EntityType.AdminDivision1.ToString());
         game.RiverPoint = await CheckGeoLocation(game.River, "River");
         game.MountainPoint = await CheckGeoLocation(game.Mountain, "Mountain");
-        
+        totalPoints = totalPoints + game.TotalPoints;
         games.Add(new Game()
             {
                 Letter = enteredLetter,
