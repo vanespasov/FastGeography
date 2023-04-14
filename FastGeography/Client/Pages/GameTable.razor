@@ -5,8 +5,6 @@
 @using FastGeography.Shared;
 @inject HttpClient HttpClient;
 
-<h3>Game</h3>
-
 <button @onclick="StartNewGame" class="btn btn-primary" disabled=@isStarted>New game</button>
 
 @if (games == null)
