@@ -2,11 +2,12 @@
 @using BingMapsRESTToolkit;
 @using System.Net.Http.Json;
 @using System.Linq;
+@using FastGeography.Shared;
 @inject HttpClient HttpClient;
-@using static FastGeography.Client.Shared.GameRow;
+
 <h3>Game</h3>
 
-<button @onclick="StartNewGame">Start new game on letter...</button>
+<button @onclick="StartNewGame" class="btn btn-primary" disabled=@isStarted>New game</button>
 
 @if (games == null)
 {
@@ -29,44 +30,56 @@ else
                 <th>State</th>
                 <th>River</th>
                 <th>Mountain</th>
-                <th>Plant</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (Game game in games)
+            @foreach (var game in games)
             {
-                <GameRow Letter=@game.Letter
-                 City=@game.City
-                 Village=@game.Village
-                 State=@game.State
-                 River=@game.River
-                 Mountain=@game.Mountain
-                 Plant=@game.Plant
-                 OnClick=@HandleClick />
+                <GameRow Id=@game.Value.Id
+                 DatePlayed=@game.Value.DatePlayed
+                 Letter=@game.Value.Letter
+                 City=@game.Value.City
+                 CityPoints=@game.Value.CityPoints
+                 Village=@game.Value.Village
+                 VillagePoints=@game.Value.VillagePoints
+                 State=@game.Value.State
+                 StatePoints=@game.Value.StatePoints
+                 River=@game.Value.River
+                 RiverPoints=@game.Value.RiverPoints
+                 Mountain=@game.Value.Mountain
+                 MountainPoints=@game.Value.MountainPoints
+                 IsFinished=@game.Value.IsFinished
+                 OnClick=@CheckAnswers />
             }
         </tbody>
     </table>
 }
 
 @code {
-    public IList<Game> games { get; set; } = new List<Game>();
+    private string bingMapsKey = "AvgAK8EVgx50WkOB6cyA8ckUM5ku4U3kGJvxthKwE75_S4-c-XlTP82kUom8baQk";
+    public IDictionary<Guid, Game> games { get; set; } = new Dictionary<Guid, Game>();
     private int totalPoints = 0;
-    private Game newGame;
+    private bool isStarted = false;
 
     private void StartNewGame()
     {
+        isStarted = true;
         Random random = new Random();
         var letter = (char)('A' + random.Next(0, 26));
-        newGame = new Game();
-        newGame.Letter = letter;
-        newGame.City = string.Empty;
-        newGame.State = string.Empty;
-        newGame.Village = string.Empty;
-        newGame.River = string.Empty;
-        newGame.Mountain = string.Empty;
-        newGame.Plant = string.Empty;
+        var key = Guid.NewGuid();
 
-        games.Add(newGame);
+        games.Add(key, new Game()
+            {
+                Id = key,
+                DatePlayed = DateTime.Now,
+                Letter = letter,
+                City = string.Empty,
+                State = string.Empty,
+                Village = string.Empty,
+                River = string.Empty,
+                Mountain = string.Empty,
+                IsFinished = false
+            });
     }
 
     protected override async Task OnInitializedAsync()
@@ -75,59 +88,45 @@ else
         //games = await Http.GetFromJsonAsync<List<Game>>("sample-data/fastgeography.json");
     }
 
-    async Task HandleClick(Game game)
+    async Task CheckAnswers(Game game)
     {
-        char? enteredLetter = game.Letter;
+        char enteredLetter = game.Letter;
         string? enteredCity = game.City;
         string? enteredVillage = game.Village;
         string? enteredState = game.State;
         string? enteredRiver = game.River;
         string? enteredMountain = game.Mountain;
-        string? enteredPlant = game.Plant;
 
-        //TODO: Validate the fields above by invoking the BingMapsRESTToolkit
-        game.CityPoint = await CheckGeoLocation(game.City, EntityType.PopulatedPlace.ToString());
-        game.VillagePoint = await CheckGeoLocation(game.Village, EntityType.PopulatedPlace.ToString());
-        game.StatePoint = await CheckGeoLocation(game.State, EntityType.AdminDivision1.ToString());
-        game.RiverPoint = await CheckGeoLocation(game.River, "River");
-        game.MountainPoint = await CheckGeoLocation(game.Mountain, "Mountain");
+        game.IsFinished = true;
+        game.CityPoints = await CheckGeoLocation(game.City, LocationType.City, game.Letter);
+        game.VillagePoints = await CheckGeoLocation(game.Village, LocationType.Village, game.Letter);
+        game.StatePoints = await CheckGeoLocation(game.State, LocationType.State, game.Letter);
+        game.RiverPoints = await CheckGeoLocation(game.River, LocationType.River, game.Letter);
+        game.MountainPoints = await CheckGeoLocation(game.Mountain, LocationType.Mountain, game.Letter);
+
         totalPoints = totalPoints + game.TotalPoints;
-        games.Add(new Game()
-            {
-                Letter = enteredLetter,
-                City = enteredCity,
-                Village = enteredVillage,
-                State = enteredState,
-                River = enteredRiver,
-                Mountain = enteredMountain,
-                Plant = enteredPlant
-            });
 
-        //Create JSON from the fields above and call API to store to DB.
+        games.Remove(game.Id);
+        games.Add(game.Id, game);
+        isStarted = !game.IsFinished;
     }
 
-    private string bingMapsKey = "AvgAK8EVgx50WkOB6cyA8ckUM5ku4U3kGJvxthKwE75_S4-c-XlTP82kUom8baQk";
 
-    private async Task<int> CheckGeoLocation(string location, string locationType)
-    {
-        if(string.IsNullOrEmpty(location))
-        {
-            return 0;
-        }
-
-        // Send the geocode request and get the response
-        return await GetResourcesFromRequest(location, locationType);
-    }
-
-    private async Task<int> GetResourcesFromRequest(string location, string locationType)
+    private async Task<int> CheckGeoLocation(string? location, LocationType locationType, char gameLetter)
     {
         var points = 0;
+
+        if (string.IsNullOrEmpty(location))
+            return 0;
+
+        if (!location.StartsWith(gameLetter))
+            return -10;
+
         //var response = await HttpClient.GetAsync($"bingmaps/{location}");
         var response = await HttpClient.GetAsync($"bingmaps/{location}/{locationType}");
 
         if (response.IsSuccessStatusCode)
         {
-            // Get the location type from the response body
             var result = await response.Content.ReadAsStringAsync();
             var termPoints = result.Split(":");
             points = int.Parse(termPoints[1]);
@@ -136,6 +135,7 @@ else
         {
             // Handle the error here...
         }
+
         return points;
     }
 }

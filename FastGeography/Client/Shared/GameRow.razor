@@ -1,44 +1,31 @@
-﻿<tr>
-    <td><input @bind-value=@game.Letter disabled="true" /></td>
-    <td><input @bind-value=@game.City /></td>
-    <td><input @bind-value=@game.Village /></td>
-    <td><input @bind-value=@game.State /></td>
-    <td><input @bind-value=@game.Mountain /></td>
-    <td><input @bind-value=@game.River /></td>
-    <td><input @bind-value=@game.Plant /></td>
-    <td><button @onclick=@HandleClick /></td>
+﻿@using FastGeography.Shared;
+
+<tr>
+    <td class="table-light"><input @bind-value=@game.Letter disabled="true" style="width:35px;" /></td>
+    <td class="@(game.SetCssClass(game.CityPoints))"><input disabled=@game.IsFinished @bind-value=@game.City /></td>
+    <td class="@(game.SetCssClass(game.VillagePoints))"><input disabled=@game.IsFinished @bind-value=@game.Village /></td>
+    <td class="@(game.SetCssClass(game.StatePoints))"><input disabled=@game.IsFinished @bind-value=@game.State /></td>
+    <td class="@(game.SetCssClass(game.RiverPoints))"><input disabled=@game.IsFinished @bind-value=@game.River /></td>
+    <td class="@(game.SetCssClass(game.MountainPoints))"><input disabled=@game.IsFinished @bind-value=@game.Mountain /></td>
+    <td class="table-light"><button @onclick="HandleClick" disabled=@game.IsFinished class="btn btn-primary">Check</button></td>
 </tr>
 
 @code {
     [Parameter] public EventCallback<Game> OnClick { get; set; }
-    [Parameter] public char? Letter { get; set; }
+    [Parameter] public Guid Id { get; set; }
+    [Parameter] public DateTime DatePlayed { get; set; }
+    [Parameter] public char Letter { get; set; }
     [Parameter] public string? City { get; set; }
+    [Parameter] public int CityPoints { get; set; }
     [Parameter] public string? Village { get; set; }
+    [Parameter] public int VillagePoints { get; set; }
     [Parameter] public string? State { get; set; }
+    [Parameter] public int StatePoints { get; set; }
     [Parameter] public string? Mountain { get; set; }
+    [Parameter] public int MountainPoints { get; set; }
     [Parameter] public string? River { get; set; }
-    [Parameter] public string? Plant { get; set; }
-
-    public class Game
-    {
-        public char? Letter { get; set; }
-        public string? City { get; set; }
-        public string? Village { get; set; }
-        public string? State { get; set; }
-        public string? Mountain { get; set; }
-        public string? River { get; set; }
-        public string? Plant { get; set; }
-
-        public int CityPoint { get { return Points.GetValueOrDefault("city"); } set { Points.Add("city", value); } }
-        public int VillagePoint { get { return Points.GetValueOrDefault("vilage"); } set { Points.Add("vilage", value); } }
-        public int StatePoint { get { return Points.GetValueOrDefault("state"); } set { Points.Add("state", value); } }
-        public int MountainPoint { get { return Points.GetValueOrDefault("mountain"); } set { Points.Add("mountain", value); } }
-        public int RiverPoint { get { return Points.GetValueOrDefault("river"); } set { Points.Add("river", value); } }
-        public int PlantPoint { get; set; }
-        public Dictionary<string, int> Points { get; set; } = new Dictionary<string, int>();
-
-        public int TotalPoints => Points.Sum(x => x.Value); 
-    }
+    [Parameter] public int RiverPoints { get; set; }
+    [Parameter] public bool IsFinished { get; set; }
 
     Game game = new Game();
 
@@ -51,13 +38,20 @@
     {
         game = new Game
             {
+                Id = Id,
+                DatePlayed = DatePlayed,
                 Letter = Letter,
                 City = City,
+                CityPoints = CityPoints,
                 Village = Village,
+                VillagePoints = VillagePoints,
                 State = State,
+                StatePoints = StatePoints,
                 Mountain = Mountain,
+                MountainPoints = MountainPoints,
                 River = River,
-                Plant = Plant
+                RiverPoints = RiverPoints,
+                IsFinished = IsFinished
             };
     }
 }

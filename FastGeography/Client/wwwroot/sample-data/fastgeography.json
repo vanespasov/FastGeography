@@ -1,20 +1,57 @@
-[
-  {
-    "Letter": "A",
-    "City": "Antalija",
-    "Village": "Adjimatovo",
-    "State": "Anglija",
-    "Mountain": "Andi",
-    "River": "Amazon",
-    "Plant": "Avokado"
-  },
-  {
-    "Letter": "M",
-    "City": "Montreal",
-    "Village": "Murtino",
-    "State": "Macedonia",
-    "Mountain": "Mountain",
-    "River": "MMMM",
-    "Plant": "MmMM"
-  }
-]
+{
+    "User": "Vane",
+    "Games": [
+        {
+            "Id": "f0dcda47-1f23-4538-92e0-a47dcdcc7850",
+            "DatePlayed": "2019-04-11",
+            "TotalPoints": 0,
+            "Letter": "A",
+            "City": {
+                "Answer": "Antalija",
+                "Points": 0
+            },
+            "Village": {
+                "Answer": "Adjimatovo",
+                "Points": 0
+            },
+            "State": {
+                "Answer": "Anglija",
+                "Points": 0
+            },
+            "Mountain": {
+                "Answer": "Andi",
+                "Points": 0
+            },
+            "River": {
+                "Answer": "Amazon",
+                "Points": 0
+            }
+        },
+        {
+            "Id": "d21b0f7e-a5a9-45ee-ad9b-eafd911e22fa",
+            "DatePlayed": "2019-04-11",
+            "TotalPoints": 0,
+            "Letter": "M",
+            "City": {
+                "Answer": "Montreal",
+                "Points": 0
+            },
+            "Village": {
+                "Answer": "Murtino",
+                "Points": 0
+            },
+            "State": {
+                "Answer": "Macedonia",
+                "Points": 0
+            },
+            "Mountain": {
+                "Answer": "Mountain",
+                "Points": 0
+            },
+            "River": {
+                "Answer": "MMMM",
+                "Points": 0
+            }
+        }
+    ]
+}

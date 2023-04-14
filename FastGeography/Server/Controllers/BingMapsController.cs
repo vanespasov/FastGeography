@@ -1,10 +1,8 @@
 ﻿namespace FastGeography.Server.Controllers
 {
     using BingMapsRESTToolkit;
-
+    using FastGeography.Shared;
     using Microsoft.AspNetCore.Mvc;
-
-
 
     [ApiController]
     [Route("bingmaps")]
@@ -13,7 +11,7 @@
         private string bingMapsKey = "AvgAK8EVgx50WkOB6cyA8ckUM5ku4U3kGJvxthKwE75_S4-c-XlTP82kUom8baQk";
 
         [HttpGet("{location}/{locationType}")]
-        public async Task<IActionResult> GetLocationType(string location, string locationType)
+        public async Task<IActionResult> GetLocationType(string location, LocationType locationType)
         {
             // Create a geocode request
             var request = new GeocodeRequest()
@@ -25,14 +23,12 @@
             };
             var response = request.Execute().Result;
 
-            if (!(response != null && response.ResourceSets != null &&
-                response.ResourceSets.Length > 0 &&
-                response.ResourceSets[0].Resources != null &&
-                response.ResourceSets[0].Resources.Length > 0))
+            if (!IsValid(response))
+            {
+                //throw new Exception("No results found.");
 
-                throw new Exception("No results found.");
-
-            var resource = response.ResourceSets[0].Resources[0];
+                return Ok($"{locationType}:-5");
+            }
 
             // Get the location type (e.g. city, river, mountain)
             var result = response.ResourceSets[0].Resources[0] as Location;
@@ -46,15 +42,41 @@
             else
             {
                 //return fail response
-                return Ok($"{locationType}:0");
+                return Ok($"{locationType}:-5");
             }
-
-            return BadRequest();
         }
 
-        private bool LocationExists(Location location, string locationType)
+        private static bool IsValid(Response? response)
         {
-            return location != null && location.EntityType.Contains(locationType);
+            //TODO: use FluentValidation!!!
+            return (response != null && response.ResourceSets != null &&
+                            response.ResourceSets.Length > 0 &&
+                            response.ResourceSets[0].Resources != null &&
+                            response.ResourceSets[0].Resources.Length > 0);
+        }
+
+        private bool LocationExists(Location? location, LocationType locationType)
+        {
+            if (location == null)
+                return false;
+
+            switch (locationType)
+            {
+                case LocationType.City:
+                    return location.EntityType.Contains("PopulatedPlace");
+                case LocationType.Village:
+                    return location.EntityType.Contains("PopulatedPlace");
+                case LocationType.State:
+                    return location.EntityType.Contains("CountryRegion") || location.EntityType.Contains("AdminDivision1");
+                case LocationType.Mountain:
+                    return location.EntityType.Contains("Mountain") || location.EntityType.Contains("MountainRange");
+                case LocationType.River:
+                    return location.EntityType.Contains("River");
+
+                default:
+                    return false;
+            }
+
         }
     }
 }
