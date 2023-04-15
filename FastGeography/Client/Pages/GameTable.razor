@@ -6,6 +6,7 @@
 @inject HttpClient HttpClient;
 
 <button @onclick="StartNewGame" class="btn btn-primary" disabled=@isStarted>New game</button>
+<Countdown @ref="countdown" />
 
 @if (games == null)
 {
@@ -17,8 +18,11 @@ else if (!games.Any())
 }
 else
 {
-    <br />
-    <label>Total points: @totalPoints</label>
+    <label>Total points: @totalPoints </label><br />
+    @if (totalPoints > 0)
+    {
+        <label>Congratualations! You were awarded with @GetBadge() badge.</label>
+    }
     <table class="table">
         <thead>
             <tr>
@@ -28,6 +32,7 @@ else
                 <th>State</th>
                 <th>River</th>
                 <th>Mountain</th>
+                <th>Time[s]</th>
             </tr>
         </thead>
         <tbody>
@@ -47,6 +52,7 @@ else
                  Mountain=@game.Value.Mountain
                  MountainPoints=@game.Value.MountainPoints
                  IsFinished=@game.Value.IsFinished
+                 SecondsPlayed=@game.Value.SecondsPlayed
                  OnClick=@CheckAnswers />
             }
         </tbody>
@@ -58,6 +64,7 @@ else
     public IDictionary<Guid, Game> games { get; set; } = new Dictionary<Guid, Game>();
     private int totalPoints = 0;
     private bool isStarted = false;
+    private Countdown countdown;
 
     private void StartNewGame()
     {
@@ -78,6 +85,8 @@ else
                 Mountain = string.Empty,
                 IsFinished = false
             });
+
+        countdown.Start(60);
     }
 
     protected override async Task OnInitializedAsync()
@@ -88,6 +97,8 @@ else
 
     async Task CheckAnswers(Game game)
     {
+        countdown.Stop();
+
         char enteredLetter = game.Letter;
         string? enteredCity = game.City;
         string? enteredVillage = game.Village;
@@ -95,6 +106,7 @@ else
         string? enteredRiver = game.River;
         string? enteredMountain = game.Mountain;
 
+        game.SecondsPlayed = countdown.ElapsedSeconds;
         game.IsFinished = true;
         game.CityPoints = await CheckGeoLocation(game.City, LocationType.City, game.Letter);
         game.VillagePoints = await CheckGeoLocation(game.Village, LocationType.Village, game.Letter);
@@ -135,5 +147,31 @@ else
         }
 
         return points;
+    }
+
+    private string GetBadge()
+    {
+        if (totalPoints > 0 && totalPoints <= 100)
+            return Badge.Junior.ToString();
+        else if (totalPoints > 100 && totalPoints <= 200)
+            return Badge.Cadet.ToString();
+        else if (totalPoints > 200 && totalPoints <= 300)
+            return Badge.Explorer.ToString();
+        else if (totalPoints > 300 && totalPoints <= 400)
+            return Badge.Traveller.ToString();
+        else if (totalPoints > 400 && totalPoints <= 500)
+            return Badge.Jumper.ToString();
+        else if (totalPoints > 500 && totalPoints <= 600)
+            return Badge.EarthSurfer.ToString();
+        else if (totalPoints > 600 && totalPoints <= 700)
+            return Badge.EarthConqueror.ToString();
+        else if (totalPoints > 700 && totalPoints <= 800)
+            return Badge.SolarSpectre.ToString();
+        else if (totalPoints > 800 && totalPoints <= 900)
+            return Badge.GalacticSurfer.ToString();
+        else if (totalPoints > 900 && totalPoints <= 1000)
+            return Badge.GalacticConqueror.ToString();
+
+        return "";
     }
 }

@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FastGeography.Server", "FastGeography\Server\FastGeography.Server.csproj", "{9442C855-FBCE-47A8-A136-47FDF4A4DF2E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FastGeography.Server", "FastGeography\Server\FastGeography.Server.csproj", "{9442C855-FBCE-47A8-A136-47FDF4A4DF2E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FastGeography.Client", "FastGeography\Client\FastGeography.Client.csproj", "{322B7F24-345E-4877-A424-9F36995FC545}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FastGeography.Client", "FastGeography\Client\FastGeography.Client.csproj", "{322B7F24-345E-4877-A424-9F36995FC545}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FastGeography.Shared", "FastGeography\Shared\FastGeography.Shared.csproj", "{468B7E5B-F11E-4C49-8EB7-AB0277459B29}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FastGeography.Shared", "FastGeography\Shared\FastGeography.Shared.csproj", "{468B7E5B-F11E-4C49-8EB7-AB0277459B29}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
