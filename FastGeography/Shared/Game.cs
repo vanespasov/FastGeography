@@ -41,6 +41,8 @@
             set { SetPoints("river", value); }
         }
 
+        public int SecondsPlayed { get; set; }
+
         public Dictionary<string, int> PointsPerTerm { get; set; } = new Dictionary<string, int>();
 
         public int TotalPoints => PointsPerTerm.Sum(x => x.Value);

@@ -7,6 +7,7 @@
     <td class="@(game.SetCssClass(game.StatePoints))"><input disabled=@game.IsFinished @bind-value=@game.State /></td>
     <td class="@(game.SetCssClass(game.RiverPoints))"><input disabled=@game.IsFinished @bind-value=@game.River /></td>
     <td class="@(game.SetCssClass(game.MountainPoints))"><input disabled=@game.IsFinished @bind-value=@game.Mountain /></td>
+    <td class="table-light">@game.SecondsPlayed</td>
     <td class="table-light"><button @onclick="HandleClick" disabled=@game.IsFinished class="btn btn-primary">Check</button></td>
 </tr>
 
@@ -26,6 +27,7 @@
     [Parameter] public string? River { get; set; }
     [Parameter] public int RiverPoints { get; set; }
     [Parameter] public bool IsFinished { get; set; }
+    [Parameter] public int SecondsPlayed{ get; set; }
 
     Game game = new Game();
 
@@ -51,7 +53,8 @@
                 MountainPoints = MountainPoints,
                 River = River,
                 RiverPoints = RiverPoints,
-                IsFinished = IsFinished
+                IsFinished = IsFinished,
+                SecondsPlayed = SecondsPlayed
             };
     }
 }

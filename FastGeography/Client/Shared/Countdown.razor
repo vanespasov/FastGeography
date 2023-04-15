@@ -1,0 +1,62 @@
+﻿@using System.Timers;
+
+<div class="clock">
+    <h1>@Time</h1>
+</div>
+
+@code {
+    private System.Timers.Timer _timer = null!;
+    private int _secondsToRun = 0;
+    private int initialSeconds = 0;
+
+    protected string Time { get; set; } = "00:00";
+
+    [Parameter]
+    public EventCallback TimerOut { get; set; }
+
+    [Parameter]
+    public int SecondsToRun { get { return _secondsToRun; } set { } }
+    public int ElapsedSeconds { get { return initialSeconds - _secondsToRun; } }
+
+    public void Start(int secondsToRun)
+    {
+        initialSeconds = secondsToRun;
+        _secondsToRun = secondsToRun;
+
+        if (_secondsToRun > 0)
+        {
+            Time = TimeSpan.FromSeconds(_secondsToRun).ToString(@"mm\:ss");
+            StateHasChanged();
+            _timer.Start();
+        }
+    }
+
+    public void Stop()
+    {
+        _timer.Stop();
+    }
+
+    protected override void OnInitialized()
+    {
+        _timer = new System.Timers.Timer(1000);
+        _timer.Elapsed += OnTimedEvent;
+        _timer.AutoReset = true;
+    }
+
+    private async void OnTimedEvent(object? sender, ElapsedEventArgs e)
+    {
+        _secondsToRun--;
+
+        await InvokeAsync(() =>
+        {
+            Time = TimeSpan.FromSeconds(_secondsToRun).ToString(@"mm\:ss");
+            StateHasChanged();
+        });
+
+        if (_secondsToRun <= 0)
+        {
+            _timer.Stop();
+            await TimerOut.InvokeAsync();
+        }
+    }
+}
