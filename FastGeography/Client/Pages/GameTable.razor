@@ -18,10 +18,12 @@ else if (!games.Any())
 }
 else
 {
-    <label>Total points: @totalPoints </label><br />
+    <label>Total points: @totalPoints </label>
+    <br />
     @if (totalPoints > 0)
     {
         <label>Congratualations! You were awarded with @GetBadge() badge.</label>
+        <img src=@GetBadgeImage() width="64px" />
     }
     <table class="table">
         <thead>
@@ -149,29 +151,35 @@ else
         return points;
     }
 
-    private string GetBadge()
+    private Badge GetBadge()
     {
         if (totalPoints > 0 && totalPoints <= 100)
-            return Badge.Junior.ToString();
+            return Badge.Junior;
         else if (totalPoints > 100 && totalPoints <= 200)
-            return Badge.Cadet.ToString();
+            return Badge.Cadet;
         else if (totalPoints > 200 && totalPoints <= 300)
-            return Badge.Explorer.ToString();
+            return Badge.Explorer;
         else if (totalPoints > 300 && totalPoints <= 400)
-            return Badge.Traveller.ToString();
+            return Badge.Traveller;
         else if (totalPoints > 400 && totalPoints <= 500)
-            return Badge.Jumper.ToString();
+            return Badge.Jumper;
         else if (totalPoints > 500 && totalPoints <= 600)
-            return Badge.EarthSurfer.ToString();
+            return Badge.EarthSurfer;
         else if (totalPoints > 600 && totalPoints <= 700)
-            return Badge.EarthConqueror.ToString();
+            return Badge.EarthConqueror;
         else if (totalPoints > 700 && totalPoints <= 800)
-            return Badge.SolarSpectre.ToString();
+            return Badge.SolarSpectre;
         else if (totalPoints > 800 && totalPoints <= 900)
-            return Badge.GalacticSurfer.ToString();
+            return Badge.GalacticSurfer;
         else if (totalPoints > 900 && totalPoints <= 1000)
-            return Badge.GalacticConqueror.ToString();
+            return Badge.GalacticConqueror;
 
-        return "";
+        return Badge.Junior;
+    }
+
+    private string GetBadgeImage()
+    {
+        var rating = (int)GetBadge();
+        return $"images/badge-{rating}.png";
     }
 }
