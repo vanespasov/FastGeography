@@ -2,11 +2,51 @@
 
 <tr>
     <td class="table-light"><input @bind-value=@game.Letter disabled="true" style="width:35px;" /></td>
-    <td class="@(game.SetCssClass(game.CityPoints))"><input disabled=@game.IsFinished @bind-value=@game.City /></td>
-    <td class="@(game.SetCssClass(game.VillagePoints))"><input disabled=@game.IsFinished @bind-value=@game.Village /></td>
-    <td class="@(game.SetCssClass(game.StatePoints))"><input disabled=@game.IsFinished @bind-value=@game.State /></td>
-    <td class="@(game.SetCssClass(game.RiverPoints))"><input disabled=@game.IsFinished @bind-value=@game.River /></td>
-    <td class="@(game.SetCssClass(game.MountainPoints))"><input disabled=@game.IsFinished @bind-value=@game.Mountain /></td>
+    <td class="@(game.SetCssClass(game.City.Points))">
+        <input disabled=@game.IsFinished @bind-value=@game.City.Answer />
+        @if (game.City.MapsUri != null)
+        {
+            <a href="@game.City.MapsUri" target="_blank">
+                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            </a>
+        }
+    </td>
+    <td class="@(game.SetCssClass(game.Village.Points))">
+        <input disabled=@game.IsFinished @bind-value=@game.Village.Answer />
+        @if (game.Village.MapsUri != null)
+        {
+            <a href="@game.Village.MapsUri" target="_blank">
+                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            </a>
+        }
+    </td>
+    <td class="@(game.SetCssClass(game.State.Points))">
+        <input disabled=@game.IsFinished @bind-value=@game.State.Answer />
+        @if (game.State.MapsUri != null)
+        {
+            <a href="@game.State.MapsUri" target="_blank">
+                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            </a>
+        }
+    </td>
+    <td class="@(game.SetCssClass(game.River.Points))">
+        <input disabled=@game.IsFinished @bind-value=@game.River.Answer />
+        @if (game.River.MapsUri != null)
+        {
+            <a href="@game.River.MapsUri" target="_blank">
+                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            </a>
+        }
+    </td>
+    <td class="@(game.SetCssClass(game.Mountain.Points))">
+        <input disabled=@game.IsFinished @bind-value=@game.Mountain.Answer />
+        @if (game.Mountain.MapsUri != null)
+        {
+            <a href="@game.Mountain.MapsUri" target="_blank">
+                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            </a>
+        }
+    </td>
     <td class="table-light">@game.SecondsPlayed</td>
     <td class="table-light"><button @onclick="HandleClick" disabled=@game.IsFinished class="btn btn-primary">Check</button></td>
 </tr>
@@ -16,18 +56,13 @@
     [Parameter] public Guid Id { get; set; }
     [Parameter] public DateTime DatePlayed { get; set; }
     [Parameter] public char Letter { get; set; }
-    [Parameter] public string? City { get; set; }
-    [Parameter] public int CityPoints { get; set; }
-    [Parameter] public string? Village { get; set; }
-    [Parameter] public int VillagePoints { get; set; }
-    [Parameter] public string? State { get; set; }
-    [Parameter] public int StatePoints { get; set; }
-    [Parameter] public string? Mountain { get; set; }
-    [Parameter] public int MountainPoints { get; set; }
-    [Parameter] public string? River { get; set; }
-    [Parameter] public int RiverPoints { get; set; }
+    [Parameter] public GameLocation? City { get; set; }
+    [Parameter] public GameLocation? Village { get; set; }
+    [Parameter] public GameLocation? State { get; set; }
+    [Parameter] public GameLocation? Mountain { get; set; }
+    [Parameter] public GameLocation? River { get; set; }
     [Parameter] public bool IsFinished { get; set; }
-    [Parameter] public int SecondsPlayed{ get; set; }
+    [Parameter] public int SecondsPlayed { get; set; }
 
     Game game = new Game();
 
@@ -44,15 +79,10 @@
                 DatePlayed = DatePlayed,
                 Letter = Letter,
                 City = City,
-                CityPoints = CityPoints,
                 Village = Village,
-                VillagePoints = VillagePoints,
                 State = State,
-                StatePoints = StatePoints,
                 Mountain = Mountain,
-                MountainPoints = MountainPoints,
                 River = River,
-                RiverPoints = RiverPoints,
                 IsFinished = IsFinished,
                 SecondsPlayed = SecondsPlayed
             };

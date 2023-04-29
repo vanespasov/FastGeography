@@ -6,7 +6,7 @@
 @inject HttpClient HttpClient;
 
 <button @onclick="StartNewGame" class="btn btn-primary" disabled=@isStarted>New game</button>
-<Countdown @ref="countdown" />
+<Countdown @ref="countdown"/>
 
 @if (games == null)
 {
@@ -44,15 +44,10 @@ else
                  DatePlayed=@game.Value.DatePlayed
                  Letter=@game.Value.Letter
                  City=@game.Value.City
-                 CityPoints=@game.Value.CityPoints
                  Village=@game.Value.Village
-                 VillagePoints=@game.Value.VillagePoints
                  State=@game.Value.State
-                 StatePoints=@game.Value.StatePoints
                  River=@game.Value.River
-                 RiverPoints=@game.Value.RiverPoints
                  Mountain=@game.Value.Mountain
-                 MountainPoints=@game.Value.MountainPoints
                  IsFinished=@game.Value.IsFinished
                  SecondsPlayed=@game.Value.SecondsPlayed
                  OnClick=@CheckAnswers />
@@ -65,11 +60,15 @@ else
     private string bingMapsKey = "AvgAK8EVgx50WkOB6cyA8ckUM5ku4U3kGJvxthKwE75_S4-c-XlTP82kUom8baQk";
     public IDictionary<Guid, Game> games { get; set; } = new Dictionary<Guid, Game>();
     private int totalPoints = 0;
+    private int totalGames = 10;
+    private int gamesPlayed = 0;
     private bool isStarted = false;
     private Countdown countdown;
+    private IDictionary<char, Dictionary<string, string>> locations = new Dictionary<char, Dictionary<string, string>>();
 
     private void StartNewGame()
     {
+        totalGames++;
         isStarted = true;
         Random random = new Random();
         var letter = (char)('A' + random.Next(0, 26));
@@ -80,11 +79,11 @@ else
                 Id = key,
                 DatePlayed = DateTime.Now,
                 Letter = letter,
-                City = string.Empty,
-                State = string.Empty,
-                Village = string.Empty,
-                River = string.Empty,
-                Mountain = string.Empty,
+                City = new GameLocation() { Answer = string.Empty },
+                State = new GameLocation() { Answer = string.Empty },
+                Village = new GameLocation() { Answer = string.Empty },
+                River = new GameLocation() { Answer = string.Empty },
+                Mountain = new GameLocation() { Answer = string.Empty },
                 IsFinished = false
             });
 
@@ -100,48 +99,45 @@ else
     async Task CheckAnswers(Game game)
     {
         countdown.Stop();
-
-        char enteredLetter = game.Letter;
-        string? enteredCity = game.City;
-        string? enteredVillage = game.Village;
-        string? enteredState = game.State;
-        string? enteredRiver = game.River;
-        string? enteredMountain = game.Mountain;
-
         game.SecondsPlayed = countdown.ElapsedSeconds;
         game.IsFinished = true;
-        game.CityPoints = await CheckGeoLocation(game.City, LocationType.City, game.Letter);
-        game.VillagePoints = await CheckGeoLocation(game.Village, LocationType.Village, game.Letter);
-        game.StatePoints = await CheckGeoLocation(game.State, LocationType.State, game.Letter);
-        game.RiverPoints = await CheckGeoLocation(game.River, LocationType.River, game.Letter);
-        game.MountainPoints = await CheckGeoLocation(game.Mountain, LocationType.Mountain, game.Letter);
+        game.City.Points = await CheckGeoLocation(game.City, game.Letter);
+        game.Village.Points = await CheckGeoLocation(game.Village, game.Letter);
+        game.State.Points = await CheckGeoLocation(game.State, game.Letter);
+        game.River.Points = await CheckGeoLocation(game.River, game.Letter);
+        game.Mountain.Points = await CheckGeoLocation(game.Mountain, game.Letter);
 
         totalPoints = totalPoints + game.TotalPoints;
 
         games.Remove(game.Id);
         games.Add(game.Id, game);
+
         isStarted = !game.IsFinished;
     }
 
 
-    private async Task<int> CheckGeoLocation(string? location, LocationType locationType, char gameLetter)
+    private async Task<int> CheckGeoLocation(GameLocation? location, char gameLetter)
     {
         var points = 0;
 
-        if (string.IsNullOrEmpty(location))
-            return 0;
+        if (string.IsNullOrEmpty(location.Answer))
+            return 0;//TODO: add a penalty for empty answer
 
-        if (!location.StartsWith(gameLetter))
-            return -10;
+        if (!location.Answer.StartsWith(gameLetter))
+            return -10;//TODO: add a penalty for wrong letter
 
         //var response = await HttpClient.GetAsync($"bingmaps/{location}");
-        var response = await HttpClient.GetAsync($"bingmaps/{location}/{locationType}");
+        var response = await HttpClient.GetAsync($"bingmaps/{location.Answer}/{location.LocationType}");
 
         if (response.IsSuccessStatusCode)
         {
             var result = await response.Content.ReadAsStringAsync();
-            var termPoints = result.Split(":");
-            points = int.Parse(termPoints[1]);
+            var resultData = result.Split(":");
+            points = int.Parse(resultData[1]);
+            if (resultData.Length > 2)
+            {
+                location.Coordinates = resultData[2];
+            }
         }
         else
         {
