@@ -9,48 +9,28 @@
         public DateTime DatePlayed { get; set; }
         public bool IsFinished { get; set; }
         public char Letter { get; set; }
-        public string? City { get; set; }
-        public string? Village { get; set; }
-        public string? State { get; set; }
-        public string? Mountain { get; set; }
-        public string? River { get; set; }
-        public int CityPoints
-        {
-            get { return PointsPerTerm.GetValueOrDefault("city"); }
-            set { SetPoints("city", value); }
-        }
-        
-        public int VillagePoints
-        {
-            get { return PointsPerTerm.GetValueOrDefault("vilage"); }
-            set { SetPoints("vilage", value); }
-        }
-        public int StatePoints
-        {
-            get { return PointsPerTerm.GetValueOrDefault("state"); }
-            set { SetPoints("state", value); }
-        }
-        public int MountainPoints
-        {
-            get { return PointsPerTerm.GetValueOrDefault("mountain"); }
-            set { SetPoints("mountain", value); }
-        }
-        public int RiverPoints
-        {
-            get { return PointsPerTerm.GetValueOrDefault("river"); }
-            set { SetPoints("river", value); }
-        }
+        public GameLocation? City { get; set; }
+        public GameLocation? Village { get; set; }
+        public GameLocation? State { get; set; }
+        public GameLocation? Mountain { get; set; }
+        public GameLocation? River { get; set; }
 
         public int SecondsPlayed { get; set; }
 
-        public Dictionary<string, int> PointsPerTerm { get; set; } = new Dictionary<string, int>();
+        public Dictionary<LocationType, int> PointsPerTerm { get; set; } = new Dictionary<LocationType, int>();
 
-        public int TotalPoints => PointsPerTerm.Sum(x => x.Value);
+        public int TotalPoints => City.Points + Village.Points + State.Points + Mountain.Points + River.Points;
 
-        private void SetPoints(string key, int value)
+        private void SetPoints(LocationType key, int value)
         {
-            if (PointsPerTerm.ContainsKey(key)) { PointsPerTerm[key] = value; }
-            else { PointsPerTerm.Add(key, value); }
+            if (PointsPerTerm.ContainsKey(key))
+            {
+                PointsPerTerm[key] = value;
+            }
+            else
+            {
+                PointsPerTerm.Add(key, value);
+            }
         }
 
         public string SetCssClass(int points)

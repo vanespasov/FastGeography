@@ -1,7 +1,9 @@
 ﻿namespace FastGeography.Server.Controllers
 {
     using BingMapsRESTToolkit;
+
     using FastGeography.Shared;
+
     using Microsoft.AspNetCore.Mvc;
 
     [ApiController]
@@ -25,23 +27,19 @@
 
             if (!IsValid(response))
             {
-                //throw new Exception("No results found.");
-
                 return Ok($"{locationType}:-5");
             }
 
             // Get the location type (e.g. city, river, mountain)
             var result = response.ResourceSets[0].Resources[0] as Location;
 
-            // Check if the location is a city
             if (LocationExists(result, locationType))
             {
-                // add points for city.
-                return Ok($"{locationType}:20");
+                var coordinates = $"{result.Point.Coordinates[0]},{result.Point.Coordinates[1]}";
+                return Ok($"{locationType}:20:{coordinates}");
             }
             else
             {
-                //return fail response
                 return Ok($"{locationType}:-5");
             }
         }
