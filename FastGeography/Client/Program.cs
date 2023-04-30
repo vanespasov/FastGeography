@@ -1,3 +1,5 @@
+using BlazorApplicationInsights;
+
 using FastGeography.Client;
 
 using Microsoft.AspNetCore.Components.Web;
@@ -12,5 +14,6 @@ builder.Services.AddScoped(sp =>
     {
         BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) 
     });
+builder.Services.AddBlazorApplicationInsights();
 
 await builder.Build().RunAsync();
