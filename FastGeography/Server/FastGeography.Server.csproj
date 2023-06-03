@@ -15,5 +15,4 @@
     <ProjectReference Include="..\Shared\FastGeography.Shared.csproj" />
   </ItemGroup>
 
-
 </Project>
