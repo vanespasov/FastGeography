@@ -64,7 +64,7 @@
                     return location.EntityType.Contains("PopulatedPlace");
                 case LocationType.Village:
                     return location.EntityType.Contains("PopulatedPlace");
-                case LocationType.State:
+                case LocationType.Country:
                     return location.EntityType.Contains("CountryRegion") || location.EntityType.Contains("AdminDivision1");
                 case LocationType.Mountain:
                     return location.EntityType.Contains("Mountain") || location.EntityType.Contains("MountainRange");
