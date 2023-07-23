@@ -6,7 +6,7 @@
 @inject HttpClient HttpClient;
 
 <button @onclick="StartNewGame" class="btn btn-primary" disabled=@isStarted>New game</button>
-<Countdown @ref="countdown"/>
+<Countdown @ref="countdown" />
 
 @if (games == null)
 {
@@ -31,7 +31,7 @@ else
                 <th>Letter</th>
                 <th>City</th>
                 <th>Village</th>
-                <th>State</th>
+                <th>Country</th>
                 <th>River</th>
                 <th>Mountain</th>
                 <th>Time[s]</th>
@@ -41,16 +41,16 @@ else
             @foreach (var game in games)
             {
                 <GameRow Id=@game.Value.Id
-                 DatePlayed=@game.Value.DatePlayed
-                 Letter=@game.Value.Letter
-                 City=@game.Value.City
-                 Village=@game.Value.Village
-                 State=@game.Value.State
-                 River=@game.Value.River
-                 Mountain=@game.Value.Mountain
-                 IsFinished=@game.Value.IsFinished
-                 SecondsPlayed=@game.Value.SecondsPlayed
-                 OnClick=@CheckAnswers />
+                         DatePlayed=@game.Value.DatePlayed
+                         Letter=@game.Value.Letter
+                         City=@game.Value.City
+                         Village=@game.Value.Village
+                         Country=@game.Value.Country
+                         River=@game.Value.River
+                         Mountain=@game.Value.Mountain
+                         IsFinished=@game.Value.IsFinished
+                         SecondsPlayed=@game.Value.SecondsPlayed
+                         OnClick=@CheckAnswers />
             }
         </tbody>
     </table>
@@ -79,11 +79,11 @@ else
                 Id = key,
                 DatePlayed = DateTime.Now,
                 Letter = letter,
-                City = new GameLocation() { Answer = string.Empty },
-                State = new GameLocation() { Answer = string.Empty },
-                Village = new GameLocation() { Answer = string.Empty },
-                River = new GameLocation() { Answer = string.Empty },
-                Mountain = new GameLocation() { Answer = string.Empty },
+                City = new GameLocation() { Answer = string.Empty, LocationType = LocationType.City },
+                Country = new GameLocation() { Answer = string.Empty, LocationType = LocationType.Country},
+                Village = new GameLocation() { Answer = string.Empty, LocationType = LocationType.Village },
+                River = new GameLocation() { Answer = string.Empty, LocationType = LocationType.River },
+                Mountain = new GameLocation() { Answer = string.Empty, LocationType = LocationType.Mountain },
                 IsFinished = false
             });
 
@@ -103,7 +103,7 @@ else
         game.IsFinished = true;
         game.City.Points = await CheckGeoLocation(game.City, game.Letter);
         game.Village.Points = await CheckGeoLocation(game.Village, game.Letter);
-        game.State.Points = await CheckGeoLocation(game.State, game.Letter);
+        game.Country.Points = await CheckGeoLocation(game.Country, game.Letter);
         game.River.Points = await CheckGeoLocation(game.River, game.Letter);
         game.Mountain.Points = await CheckGeoLocation(game.Mountain, game.Letter);
 
@@ -133,7 +133,7 @@ else
         {
             var result = await response.Content.ReadAsStringAsync();
             var resultData = result.Split(":");
-            points = int.Parse(resultData[1]);
+            int.TryParse(resultData[1], out points);
             if (resultData.Length > 2)
             {
                 location.Coordinates = resultData[2];
