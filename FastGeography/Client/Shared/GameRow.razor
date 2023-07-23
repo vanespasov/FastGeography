@@ -20,11 +20,11 @@
             </a>
         }
     </td>
-    <td class="@(game.SetCssClass(game.State.Points))">
-        <input disabled=@game.IsFinished @bind-value=@game.State.Answer />
-        @if (game.State.MapsUri != null)
+    <td class="@(game.SetCssClass(game.Country.Points))">
+        <input disabled=@game.IsFinished @bind-value=@game.Country.Answer />
+        @if (game.Country.MapsUri != null)
         {
-            <a href="@game.State.MapsUri" target="_blank">
+            <a href="@game.Country.MapsUri" target="_blank">
                 <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
             </a>
         }
@@ -58,7 +58,7 @@
     [Parameter] public char Letter { get; set; }
     [Parameter] public GameLocation? City { get; set; }
     [Parameter] public GameLocation? Village { get; set; }
-    [Parameter] public GameLocation? State { get; set; }
+    [Parameter] public GameLocation? Country { get; set; }
     [Parameter] public GameLocation? Mountain { get; set; }
     [Parameter] public GameLocation? River { get; set; }
     [Parameter] public bool IsFinished { get; set; }
@@ -80,7 +80,7 @@
                 Letter = Letter,
                 City = City,
                 Village = Village,
-                State = State,
+                Country = Country,
                 Mountain = Mountain,
                 River = River,
                 IsFinished = IsFinished,
