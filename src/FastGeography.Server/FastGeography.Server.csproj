@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -11,8 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Client\FastGeography.Client.csproj" />
-    <ProjectReference Include="..\Shared\FastGeography.Shared.csproj" />
+    <ProjectReference Include="..\FastGeography.Client\FastGeography.Client.csproj" />
+    <ProjectReference Include="..\FastGeography.Shared\FastGeography.Shared.csproj" />
   </ItemGroup>
 
 </Project>

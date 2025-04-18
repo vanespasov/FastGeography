@@ -1,7 +1,6 @@
 ﻿namespace FastGeography.Shared
 {
     using System.Collections.Generic;
-    using System.Linq;
 
     public class Game
     {
@@ -20,18 +19,6 @@
         public Dictionary<LocationType, int> PointsPerTerm { get; set; } = new Dictionary<LocationType, int>();
 
         public int TotalPoints => City.Points + Village.Points + Country.Points + Mountain.Points + River.Points;
-
-        private void SetPoints(LocationType key, int value)
-        {
-            if (PointsPerTerm.ContainsKey(key))
-            {
-                PointsPerTerm[key] = value;
-            }
-            else
-            {
-                PointsPerTerm.Add(key, value);
-            }
-        }
 
         public string SetCssClass(int points)
         {

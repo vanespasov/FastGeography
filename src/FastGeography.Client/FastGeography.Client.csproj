@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Shared\FastGeography.Shared.csproj" />
+    <ProjectReference Include="..\FastGeography.Shared\FastGeography.Shared.csproj" />
   </ItemGroup>
 
 </Project>
