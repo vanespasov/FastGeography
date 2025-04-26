@@ -5,177 +5,199 @@
 @using FastGeography.Shared;
 @inject HttpClient HttpClient;
 
-<button @onclick="StartNewGame" class="btn btn-primary" disabled=@isStarted>New game</button>
-<Countdown @ref="countdown" />
+<div class="game-container">
+    <div class="game-header">
+        <button @onclick="StartNewGame" class="btn btn-lg btn-primary game-button" disabled=@isStarted>
+            <i class="oi oi-play-circle"></i> Start New Adventure!
+        </button>
+        <div class="timer-container">
+            <Countdown @ref="countdown" />
+        </div>
+    </div>
 
-@if (games == null)
-{
-    <p><em>Loading...</em></p>
-}
-else if (!games.Any())
-{
-    <p><em>No game started.  Please start one.</em></p>
-}
-else
-{
-    <label>Total points: @totalPoints </label>
-    <br />
-    @if (totalPoints > 0)
+    @if (games == null)
     {
-        <label>Congratualations! You were awarded with @GetBadge() badge.</label>
-        <img src=@GetBadgeImage() width="64px" />
+        <p><em>Loading...</em></p>
     }
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Letter</th>
-                <th>City</th>
-                <th>Village</th>
-                <th>Country</th>
-                <th>River</th>
-                <th>Mountain</th>
-                <th>Time[s]</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var game in games)
-            {
-                <GameRow Id=@game.Value.Id
-                         DatePlayed=@game.Value.DatePlayed
-                         Letter=@game.Value.Letter
-                         City=@game.Value.City
-                         Village=@game.Value.Village
-                         Country=@game.Value.Country
-                         River=@game.Value.River
-                         Mountain=@game.Value.Mountain
-                         IsFinished=@game.Value.IsFinished
-                         SecondsPlayed=@game.Value.SecondsPlayed
-                         OnClick=@CheckAnswers />
-            }
-        </tbody>
-    </table>
-}
-
-@code {
-    private string bingMapsKey = "AvgAK8EVgx50WkOB6cyA8ckUM5ku4U3kGJvxthKwE75_S4-c-XlTP82kUom8baQk";
-    public IDictionary<Guid, Game> games { get; set; } = new Dictionary<Guid, Game>();
-    private int totalPoints = 0;
-    private int totalGames = 10;
-    private int gamesPlayed = 0;
-    private bool isStarted = false;
-    private Countdown countdown;
-    private IDictionary<char, Dictionary<string, string>> locations = new Dictionary<char, Dictionary<string, string>>();
-
-    private void StartNewGame()
+    else if (!games.Any())
     {
-        totalGames++;
-        isStarted = true;
-        Random random = new Random();
-        var letter = (char)('A' + random.Next(0, 26));
-        var key = Guid.NewGuid();
+        <p><em>No game started.  Please start one.</em></p>
+    }
+    else
+    {
+        <label>Total points: @totalPoints </label>
+        <br />
+        @if (totalPoints > 0)
+        {
+            <div class="achievement-banner">
+                <h3>@encourageMessage</h3>
+                <h3>🎉 Amazing Explorer! You earned the @GetBadge() badge 🎉</h3>
+                <img src=@GetBadgeImage() class="badge-image" alt="Achievement Badge" />
+            </div>
+        }
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Letter</th>
+                    <th>City</th>
+                    <th>Village</th>
+                    <th>Country</th>
+                    <th>River</th>
+                    <th>Mountain</th>
+                    <th>Time[s]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var game in games)
+                {
+                    <GameRow Id=@game.Value.Id
+                             DatePlayed=@game.Value.DatePlayed
+                             Letter=@game.Value.Letter
+                             City=@game.Value.City
+                             Village=@game.Value.Village
+                             Country=@game.Value.Country
+                             River=@game.Value.River
+                             Mountain=@game.Value.Mountain
+                             IsFinished=@game.Value.IsFinished
+                             SecondsPlayed=@game.Value.SecondsPlayed
+                             OnClick=@CheckAnswers />
+                }
+            </tbody>
+        </table>
+    }
 
-        games.Add(key, new Game()
+    @code {
+        private string bingMapsKey = "AvgAK8EVgx50WkOB6cyA8ckUM5ku4U3kGJvxthKwE75_S4-c-XlTP82kUom8baQk";
+        public IDictionary<Guid, Game> games { get; set; } = new Dictionary<Guid, Game>();
+        private int totalPoints = 0;
+        private string encourageMessage = "";
+        private int totalGames = 10;
+        private int gamesPlayed = 0;
+        private bool isStarted = false;
+        private Countdown countdown;
+        private IDictionary<char, Dictionary<string, string>> locations = new Dictionary<char, Dictionary<string, string>>();
+
+        private void StartNewGame()
+        {
+            totalGames++;
+            isStarted = true;
+            Random random = new Random();
+            var letter = (char)('A' + random.Next(0, 26));
+            var key = Guid.NewGuid();
+
+            games.Add(key, new Game()
             {
                 Id = key,
                 DatePlayed = DateTime.Now,
                 Letter = letter,
                 City = new GameLocation() { Answer = string.Empty, LocationType = LocationType.City },
-                Country = new GameLocation() { Answer = string.Empty, LocationType = LocationType.Country},
+                Country = new GameLocation() { Answer = string.Empty, LocationType = LocationType.Country },
                 Village = new GameLocation() { Answer = string.Empty, LocationType = LocationType.Village },
                 River = new GameLocation() { Answer = string.Empty, LocationType = LocationType.River },
                 Mountain = new GameLocation() { Answer = string.Empty, LocationType = LocationType.Mountain },
                 IsFinished = false
             });
 
-        countdown.Start(60);
-    }
+            countdown.Start(60);
+        }
 
-    protected override async Task OnInitializedAsync()
-    {
-        //TODO: load the games that the user has played. Load them from the Redis cache.
-        //games = await Http.GetFromJsonAsync<List<Game>>("sample-data/fastgeography.json");
-    }
-
-    async Task CheckAnswers(Game game)
-    {
-        countdown.Stop();
-        game.SecondsPlayed = countdown.ElapsedSeconds;
-        game.IsFinished = true;
-        game.City.Points = await CheckGeoLocation(game.City, game.Letter);
-        game.Village.Points = await CheckGeoLocation(game.Village, game.Letter);
-        game.Country.Points = await CheckGeoLocation(game.Country, game.Letter);
-        game.River.Points = await CheckGeoLocation(game.River, game.Letter);
-        game.Mountain.Points = await CheckGeoLocation(game.Mountain, game.Letter);
-
-        totalPoints = totalPoints + game.TotalPoints;
-
-        games.Remove(game.Id);
-        games.Add(game.Id, game);
-
-        isStarted = !game.IsFinished;
-    }
-
-
-    private async Task<int> CheckGeoLocation(GameLocation? location, char gameLetter)
-    {
-        var points = 0;
-
-        if (string.IsNullOrEmpty(location.Answer))
-            return 0;//TODO: add a penalty for empty answer
-
-        if (!location.Answer.StartsWith(gameLetter))
-            return -10;//TODO: add a penalty for wrong letter
-
-        //var response = await HttpClient.GetAsync($"bingmaps/{location}");
-        var response = await HttpClient.GetAsync($"bingmaps/{location.Answer}/{location.LocationType}");
-
-        if (response.IsSuccessStatusCode)
+        protected override async Task OnInitializedAsync()
         {
-            var result = await response.Content.ReadAsStringAsync();
-            var resultData = result.Split(":");
-            int.TryParse(resultData[1], out points);
-            if (resultData.Length > 2)
+            //TODO: load the games that the user has played. Load them from the Redis cache.
+            //games = await Http.GetFromJsonAsync<List<Game>>("sample-data/fastgeography.json");
+        }
+
+        async Task CheckAnswers(Game game)
+        {
+            countdown.Stop();
+
+            game.SecondsPlayed = countdown.ElapsedSeconds;
+            game.IsFinished = true;
+            game.City.Points = await CheckGeoLocation(game.City, game.Letter);
+            game.Village.Points = await CheckGeoLocation(game.Village, game.Letter);
+            game.Country.Points = await CheckGeoLocation(game.Country, game.Letter);
+            game.River.Points = await CheckGeoLocation(game.River, game.Letter);
+            game.Mountain.Points = await CheckGeoLocation(game.Mountain, game.Letter);
+
+            totalPoints = totalPoints + game.TotalPoints;
+            encourageMessage = GetEncouragingMessage(game.TotalPoints);
+            games.Remove(game.Id);
+            games.Add(game.Id, game);
+
+            isStarted = !game.IsFinished;
+        }
+
+
+        private async Task<int> CheckGeoLocation(GameLocation? location, char gameLetter)
+        {
+            var points = 0;
+
+            if (string.IsNullOrEmpty(location.Answer))
+                return 0;//TODO: add a penalty for empty answer
+
+            if (!location.Answer.StartsWith(gameLetter))
+                return -10;//TODO: add a penalty for wrong letter
+
+            //var response = await HttpClient.GetAsync($"bingmaps/{location}");
+            var response = await HttpClient.GetAsync($"bingmaps/{location.Answer}/{location.LocationType}");
+
+            if (response.IsSuccessStatusCode)
             {
-                location.Coordinates = resultData[2];
+                var result = await response.Content.ReadAsStringAsync();
+                var resultData = result.Split(":");
+                int.TryParse(resultData[1], out points);
+                if (resultData.Length > 2)
+                {
+                    location.Coordinates = resultData[2];
+                }
             }
+            else
+            {
+                // Handle the error here...
+            }
+
+            return points;
         }
-        else
+
+        private Badge GetBadge()
         {
-            // Handle the error here...
+            if (totalPoints > 0 && totalPoints <= 100)
+                return Badge.Junior;
+            else if (totalPoints > 100 && totalPoints <= 200)
+                return Badge.Cadet;
+            else if (totalPoints > 200 && totalPoints <= 300)
+                return Badge.Explorer;
+            else if (totalPoints > 300 && totalPoints <= 400)
+                return Badge.Traveller;
+            else if (totalPoints > 400 && totalPoints <= 500)
+                return Badge.Jumper;
+            else if (totalPoints > 500 && totalPoints <= 600)
+                return Badge.EarthSurfer;
+            else if (totalPoints > 600 && totalPoints <= 700)
+                return Badge.EarthConqueror;
+            else if (totalPoints > 700 && totalPoints <= 800)
+                return Badge.SolarSpectre;
+            else if (totalPoints > 800 && totalPoints <= 900)
+                return Badge.GalacticSurfer;
+            else if (totalPoints > 900 && totalPoints <= 1000)
+                return Badge.GalacticConqueror;
+
+            return Badge.Junior;
         }
 
-        return points;
-    }
+        private string GetBadgeImage()
+        {
+            var rating = (int)GetBadge();
+            return $"images/badge-{rating}.png";
+        }
 
-    private Badge GetBadge()
-    {
-        if (totalPoints > 0 && totalPoints <= 100)
-            return Badge.Junior;
-        else if (totalPoints > 100 && totalPoints <= 200)
-            return Badge.Cadet;
-        else if (totalPoints > 200 && totalPoints <= 300)
-            return Badge.Explorer;
-        else if (totalPoints > 300 && totalPoints <= 400)
-            return Badge.Traveller;
-        else if (totalPoints > 400 && totalPoints <= 500)
-            return Badge.Jumper;
-        else if (totalPoints > 500 && totalPoints <= 600)
-            return Badge.EarthSurfer;
-        else if (totalPoints > 600 && totalPoints <= 700)
-            return Badge.EarthConqueror;
-        else if (totalPoints > 700 && totalPoints <= 800)
-            return Badge.SolarSpectre;
-        else if (totalPoints > 800 && totalPoints <= 900)
-            return Badge.GalacticSurfer;
-        else if (totalPoints > 900 && totalPoints <= 1000)
-            return Badge.GalacticConqueror;
-
-        return Badge.Junior;
+        private string GetEncouragingMessage(int points)
+        {
+            if (points >= 80) return "🌟 Outstanding! You're a Geography Genius!";
+            if (points >= 60) return "🎈 Amazing job! Keep exploring!";
+            if (points >= 40) return "👍 Good work! You're learning fast!";
+            if (points >= 20) return "😊 Nice try! Let's discover more places!";
+            return "🌍 Every game makes you smarter! Try again!";
+        }
     }
-
-    private string GetBadgeImage()
-    {
-        var rating = (int)GetBadge();
-        return $"images/badge-{rating}.png";
-    }
-}
+</div>

@@ -1,7 +1,10 @@
 ﻿@using System.Timers;
 
-<div class="clock">
-    <h1>@Time</h1>
+<div class="timer @(Time == "00:00" ? "timer-warning" : "")">
+    <div class="timer-circle">
+        <span class="timer-text">@Time</span>
+        <div class="timer-emoji">⏰</div>
+    </div>
 </div>
 
 @code {
