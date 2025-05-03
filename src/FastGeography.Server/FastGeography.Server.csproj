@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FastGeography.Client\FastGeography.Client.csproj" />
+    <ProjectReference Include="..\FastGeography.ServiceDefaults\FastGeography.ServiceDefaults.csproj" />
     <ProjectReference Include="..\FastGeography.Shared\FastGeography.Shared.csproj" />
   </ItemGroup>
 

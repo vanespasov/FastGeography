@@ -4,8 +4,10 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
+        // Add Aspire defaults (already added)
+        builder.AddServiceDefaults();
 
+        // Add services to the container.
         builder.Services.AddControllersWithViews();
         builder.Services.AddRazorPages();
 
