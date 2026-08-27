@@ -16,7 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FastGeography.Client\FastGeography.Client.csproj" />
     <ProjectReference Include="..\FastGeography.Server\FastGeography.Server.csproj" />
   </ItemGroup>
 
