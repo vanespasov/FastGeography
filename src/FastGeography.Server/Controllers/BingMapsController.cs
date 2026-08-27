@@ -1,80 +1,43 @@
-﻿namespace FastGeography.Server.Controllers
+﻿namespace FastGeography.Server.Controllers;
+
+using FastGeography.Server.Services;
+using FastGeography.Shared;
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+[ApiController]
+[Route("bingmaps")]
+[EnableRateLimiting("geocode")]
+public class BingMapsController : ControllerBase
 {
-    using BingMapsRESTToolkit;
+    private readonly IGeocodingService _geocoding;
+    private readonly ILogger<BingMapsController> _logger;
 
-    using FastGeography.Shared;
-
-    using Microsoft.AspNetCore.Mvc;
-
-    [ApiController]
-    [Route("bingmaps")]
-    public class BingMapsController : ControllerBase
+    public BingMapsController(IGeocodingService geocoding, ILogger<BingMapsController> logger)
     {
-        private string bingMapsKey = "AvgAK8EVgx50WkOB6cyA8ckUM5ku4U3kGJvxthKwE75_S4-c-XlTP82kUom8baQk";
+        _geocoding = geocoding;
+        _logger = logger;
+    }
 
-        [HttpGet("{location}/{locationType}")]
-        public async Task<IActionResult> GetLocationType(string location, LocationType locationType)
-        {
-            // Create a geocode request
-            var request = new GeocodeRequest()
-            {
-                Query = location,
-                IncludeIso2 = true,
-                MaxResults = 1,
-                BingMapsKey = bingMapsKey
-            };
-            var response = request.Execute().Result;
+    /// <summary>
+    /// Validates a player's geography answer for the given location type.
+    /// Location is limited to 100 characters to prevent quota abuse.
+    /// Returns a <see cref="GeocodeResult"/> with the awarded points and coordinates.
+    /// </summary>
+    [HttpGet("{location}/{locationType}")]
+    public async Task<IActionResult> GetLocationType(
+        string location,
+        LocationType locationType,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(location) || location.Length > ScoringRules.MaxAnswerLength)
+            return BadRequest("Location must be between 1 and 100 characters.");
 
-            if (!IsValid(response))
-            {
-                return Ok($"{locationType}:-5");
-            }
+        _logger.LogInformation(
+            "Validating answer '{Location}' for type {LocationType}", location, locationType);
 
-            // Get the location type (e.g. city, river, mountain)
-            var result = response.ResourceSets[0].Resources[0] as Location;
-
-            if (LocationExists(result, locationType))
-            {
-                var coordinates = $"{result.Point.Coordinates[0]},{result.Point.Coordinates[1]}";
-                return Ok($"{locationType}:20:{coordinates}");
-            }
-            else
-            {
-                return Ok($"{locationType}:-5");
-            }
-        }
-
-        private static bool IsValid(Response? response)
-        {
-            //TODO: use FluentValidation!!!
-            return (response != null && response.ResourceSets != null &&
-                            response.ResourceSets.Length > 0 &&
-                            response.ResourceSets[0].Resources != null &&
-                            response.ResourceSets[0].Resources.Length > 0);
-        }
-
-        private bool LocationExists(Location? location, LocationType locationType)
-        {
-            if (location == null)
-                return false;
-
-            switch (locationType)
-            {
-                case LocationType.City:
-                    return location.EntityType.Contains("PopulatedPlace");
-                case LocationType.Village:
-                    return location.EntityType.Contains("PopulatedPlace");
-                case LocationType.Country:
-                    return location.EntityType.Contains("CountryRegion") || location.EntityType.Contains("AdminDivision1");
-                case LocationType.Mountain:
-                    return location.EntityType.Contains("Mountain") || location.EntityType.Contains("MountainRange");
-                case LocationType.River:
-                    return location.EntityType.Contains("River");
-
-                default:
-                    return false;
-            }
-
-        }
+        var result = await _geocoding.ValidateAsync(location, locationType, cancellationToken);
+        return Ok(result);
     }
 }

@@ -1,44 +1,54 @@
+using System.Threading.RateLimiting;
+
+using FastGeography.Server.Options;
+using FastGeography.Server.Services;
+
+using Microsoft.AspNetCore.RateLimiting;
+
 public partial class Program
 {
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add Aspire defaults (already added)
         builder.AddServiceDefaults();
 
-        // Add services to the container.
         builder.Services.AddControllersWithViews();
         builder.Services.AddRazorPages();
 
-        // Add this line for Blazor WASM
         builder.Services.AddRazorComponents()
             .AddInteractiveWebAssemblyComponents();
 
+        // --- Configuration ---
+        builder.Services.Configure<BingMapsOptions>(
+            builder.Configuration.GetSection(BingMapsOptions.Section));
+
+        // --- Infrastructure ---
+        builder.Services.AddMemoryCache();
+        builder.Services.AddSingleton<IGeocodingService, BingGeocodingService>();
+
+        // --- Rate limiting: 60 geocode requests per minute per client ---
+        builder.Services.AddRateLimiter(limiter =>
+        {
+            limiter.AddFixedWindowLimiter("geocode", o =>
+            {
+                o.PermitLimit = 60;
+                o.Window = TimeSpan.FromMinutes(1);
+                o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                o.QueueLimit = 0;
+            });
+            limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        });
+
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
-            app.Use(async (context, next) =>
-            {
-                try
-                {
-                    await next();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Request failed: {context.Request.Path}, Error: {ex}");
-                    throw; ;
-                }
-                
-            });
             app.UseWebAssemblyDebugging();
         }
         else
         {
             app.UseExceptionHandler("/Error");
-            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();
         }
 
@@ -51,8 +61,9 @@ public partial class Program
         app.UseStaticFiles();
 
         app.UseRouting();
+        app.UseRateLimiter();
 
-
+        app.MapDefaultEndpoints();
         app.MapRazorPages();
         app.MapControllers();
         app.MapRazorComponents<FastGeography.Client.App>()

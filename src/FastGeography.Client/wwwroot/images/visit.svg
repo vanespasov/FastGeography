@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="View on map">
+  <circle cx="16" cy="13" r="7" fill="#2193b0" stroke="white" stroke-width="2"/>
+  <circle cx="16" cy="13" r="3" fill="white"/>
+  <path d="M16 20 L10 28 L16 25 L22 28 Z" fill="#2193b0"/>
+</svg>

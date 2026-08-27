@@ -1,7 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var server = builder.AddProject<Projects.FastGeography_Server>("fastgeography-api");
-var client = builder.AddProject<Projects.FastGeography_Client>("fastgeography-client")
-    .WithReference(server);
+// FastGeography.Client is a Blazor WASM app hosted by the Server project.
+// Only the Server needs to be registered with Aspire.
+builder.AddProject<Projects.FastGeography_Server>("fastgeography-server");
 
 builder.Build().Run();
