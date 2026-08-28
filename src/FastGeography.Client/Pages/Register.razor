@@ -1,0 +1,81 @@
+@page "/register"
+@inject CookieAuthenticationStateProvider Auth
+@inject NavigationManager Nav
+
+<PageTitle>Register – FastGeography</PageTitle>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Create Account</h2>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger">@_error</div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="DoRegister">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label class="form-label">Display Name</label>
+                <InputText @bind-Value="_model.DisplayName" class="form-control"
+                           placeholder="Explorer name" autocomplete="nickname" />
+                <ValidationMessage For="() => _model.DisplayName" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <InputText @bind-Value="_model.Email" class="form-control" type="email"
+                           placeholder="you@example.com" autocomplete="email" />
+                <ValidationMessage For="() => _model.Email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Password <small class="text-muted">(6+ characters)</small></label>
+                <InputText @bind-Value="_model.Password" class="form-control" type="password"
+                           placeholder="Password" autocomplete="new-password" />
+                <ValidationMessage For="() => _model.Password" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@_busy">
+                @(_busy ? "Creating account…" : "Create Account")
+            </button>
+        </EditForm>
+
+        <p class="mt-3 text-center">
+            Already have an account? <a href="/login">Sign in</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private readonly RegisterModel _model = new();
+    private string? _error;
+    private bool _busy;
+
+    private async Task DoRegister()
+    {
+        _busy = true;
+        _error = null;
+        var (ok, err) = await Auth.RegisterAsync(_model.Email, _model.Password, _model.DisplayName);
+        _busy = false;
+
+        if (ok) Nav.NavigateTo("/");
+        else _error = err ?? "Registration failed.";
+    }
+
+    private sealed class RegisterModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(50, MinimumLength = 2)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+    }
+}

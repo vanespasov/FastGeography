@@ -1,0 +1,179 @@
+@page "/ranked"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject CookieAuthenticationStateProvider Auth
+@inject ILogger<RankedGame> Logger
+
+<PageTitle>Ranked Play – FastGeography</PageTitle>
+
+<div class="game-container">
+    <div class="game-header">
+        <div>
+            <h4>Ranked Mode</h4>
+            <small class="text-muted">Points are saved to the global scoreboard.</small>
+        </div>
+        <button @onclick="StartRound"
+                class="btn btn-lg btn-success game-button"
+                disabled="@(_roundActive || _checking)">
+            <i class="oi oi-play-circle" aria-hidden="true"></i> Start Ranked Round
+        </button>
+        @if (_roundActive)
+        {
+            <div class="timer-container">
+                <Countdown @ref="_countdown" TimerOut="OnTimerExpired" />
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger alert-dismissible">
+            @_error
+            <button type="button" class="btn-close" @onclick="() => _error = null"></button>
+        </div>
+    }
+
+    @if (_checking)
+    {
+        <div class="d-flex align-items-center gap-2 my-2" role="status">
+            <div class="spinner-border spinner-border-sm text-success"></div>
+            <span>Submitting to server…</span>
+        </div>
+    }
+
+    @if (_result is not null)
+    {
+        <div class="alert alert-success mt-3">
+            <strong>Round complete!</strong> You scored <strong>@_result.TotalPoints points</strong>.
+            Badge: <strong>@_result.Badge</strong>
+            <a href="/scoreboard" class="ms-2">View Scoreboard →</a>
+        </div>
+        <table class="table table-sm mt-2">
+            <thead><tr><th>Category</th><th>Answer</th><th>Points</th></tr></thead>
+            <tbody>
+                @foreach (var d in _result.Details)
+                {
+                    <tr class="@ScoringRules.CssRowClass(d.Points)">
+                        <td>@d.Type</td>
+                        <td>@(string.IsNullOrEmpty(d.Answer) ? "–" : d.Answer)</td>
+                        <td>@d.Points</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (_roundActive && _roundId.HasValue)
+    {
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th>Letter</th>
+                    <th>City</th>
+                    <th>Village</th>
+                    <th>Country</th>
+                    <th>River</th>
+                    <th>Mountain</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>@_letter</strong></td>
+                    <td><input @bind="_city" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td><input @bind="_village" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td><input @bind="_country" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td><input @bind="_river" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td><input @bind="_mountain" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td>
+                        <button @onclick="Submit" class="btn btn-primary btn-sm" disabled="@_checking">
+                            Check
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private Countdown _countdown = null!;
+    private Guid? _roundId;
+    private char _letter;
+    private DateTime _endsAt;
+    private bool _roundActive;
+    private bool _checking;
+    private string? _error;
+    private SoloSubmitResponse? _result;
+
+    private string? _city, _village, _country, _river, _mountain;
+
+    private async Task StartRound()
+    {
+        _error = null;
+        _result = null;
+
+        var response = await Http.PostAsync("api/games/solo/start", null);
+        if (!response.IsSuccessStatusCode)
+        {
+            _error = "Failed to start round. Please try again.";
+            return;
+        }
+
+        var start = await response.Content.ReadFromJsonAsync<SoloStartResponse>();
+        if (start is null) { _error = "Invalid server response."; return; }
+
+        _roundId = start.RoundId;
+        _letter = start.Letter;
+        _endsAt = start.EndsAt;
+        _city = _village = _country = _river = _mountain = string.Empty;
+        _roundActive = true;
+
+        var secondsLeft = Math.Max(1, (int)(_endsAt - DateTime.UtcNow).TotalSeconds);
+        _countdown.Start(secondsLeft);
+    }
+
+    private async Task OnTimerExpired() => await Submit();
+
+    private async Task Submit()
+    {
+        if (!_roundActive || !_roundId.HasValue) return;
+
+        _countdown.Stop();
+        _roundActive = false;
+        _checking = true;
+        _error = null;
+
+        try
+        {
+            var req = new SubmitAnswersRequest(_city, _village, _country, _river, _mountain);
+            var resp = await Http.PostAsJsonAsync($"api/games/solo/{_roundId}/submit", req);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                _result = await resp.Content.ReadFromJsonAsync<SoloSubmitResponse>();
+            }
+            else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                _error = "Round already submitted.";
+            }
+            else if (resp.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                _error = "Submission rejected: time may have expired.";
+            }
+            else
+            {
+                _error = "Submission failed. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error submitting ranked answers");
+            _error = "Submission error. Please try again.";
+        }
+        finally
+        {
+            _checking = false;
+        }
+    }
+}

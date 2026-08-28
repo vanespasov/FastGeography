@@ -1,0 +1,86 @@
+@page "/scoreboard"
+@inject HttpClient Http
+
+<PageTitle>Scoreboard – FastGeography</PageTitle>
+
+<div class="container-fluid py-3">
+    <h2>Global Scoreboard</h2>
+
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn @(_filter == "alltime" ? "btn-primary" : "btn-outline-primary")"
+                @onclick='() => LoadLeaderboard("alltime")'>All Time</button>
+        <button class="btn @(_filter == "week" ? "btn-primary" : "btn-outline-primary")"
+                @onclick='() => LoadLeaderboard("week")'>This Week</button>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="mb-3">
+                <a href="/scoreboard/me" class="btn btn-outline-secondary btn-sm">My Stats</a>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    @if (_loading)
+    {
+        <div class="d-flex align-items-center gap-2">
+            <div class="spinner-border spinner-border-sm"></div>
+            <span>Loading…</span>
+        </div>
+    }
+    else if (_entries is null || !_entries.Any())
+    {
+        <p class="text-muted">No scores yet. Be the first to play a ranked round!</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Explorer</th>
+                        <th>Badge</th>
+                        <th class="text-end">Points</th>
+                        <th class="text-end">Games</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in _entries)
+                    {
+                        <tr class="@(e.Rank <= 3 ? "table-warning" : "")">
+                            <td>
+                                @if (e.Rank == 1) { <span>🥇</span> }
+                                else if (e.Rank == 2) { <span>🥈</span> }
+                                else if (e.Rank == 3) { <span>🥉</span> }
+                                else { <span class="text-muted">@e.Rank</span> }
+                            </td>
+                            <td><strong>@e.DisplayName</strong></td>
+                            <td><span class="badge bg-secondary">@e.Badge</span></td>
+                            <td class="text-end fw-bold">@e.CareerPoints</td>
+                            <td class="text-end">@e.GamesPlayed</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<LeaderboardEntry>? _entries;
+    private bool _loading = true;
+    private string _filter = "alltime";
+
+    protected override async Task OnInitializedAsync() => await LoadLeaderboard("alltime");
+
+    private async Task LoadLeaderboard(string filter)
+    {
+        _filter = filter;
+        _loading = true;
+        _entries = null;
+        StateHasChanged();
+        _entries = await Http.GetFromJsonAsync<List<LeaderboardEntry>>($"api/leaderboard?filter={filter}");
+        _loading = false;
+    }
+}

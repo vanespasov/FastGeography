@@ -146,3 +146,24 @@ a, .btn-link {
         transform: scale(1);
     }
 }
+/* ── Auth pages ─────────────────────────────────────── */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.auth-card h2 {
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+}

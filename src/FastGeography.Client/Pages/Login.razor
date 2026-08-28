@@ -1,0 +1,84 @@
+@page "/login"
+@inject CookieAuthenticationStateProvider Auth
+@inject NavigationManager Nav
+
+<PageTitle>Login – FastGeography</PageTitle>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Sign In</h2>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger">@_error</div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="DoLogin">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <InputText @bind-Value="_model.Email" class="form-control" type="email"
+                           placeholder="you@example.com" autocomplete="email" />
+                <ValidationMessage For="() => _model.Email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <InputText @bind-Value="_model.Password" class="form-control" type="password"
+                           placeholder="Password" autocomplete="current-password" />
+                <ValidationMessage For="() => _model.Password" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@_busy">
+                @(_busy ? "Signing in…" : "Sign In")
+            </button>
+        </EditForm>
+
+        <p class="mt-3 text-center">
+            Don't have an account? <a href="/register">Register here</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private readonly LoginModel _model = new();
+    private string? _error;
+    private bool _busy;
+    private string? _returnUrl;
+
+    protected override void OnInitialized()
+    {
+        var query = new Uri(Nav.Uri).Query;
+        foreach (var part in query.TrimStart('?').Split('&'))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0] == "returnUrl")
+            {
+                _returnUrl = Uri.UnescapeDataString(kv[1]);
+                break;
+            }
+        }
+    }
+
+    private async Task DoLogin()
+    {
+        _busy = true;
+        _error = null;
+        var ok = await Auth.LoginAsync(_model.Email, _model.Password);
+        _busy = false;
+
+        if (ok) Nav.NavigateTo(string.IsNullOrWhiteSpace(_returnUrl) ? "/" : _returnUrl);
+        else _error = "Invalid email or password.";
+    }
+
+    private sealed class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Password { get; set; } = string.Empty;
+    }
+}

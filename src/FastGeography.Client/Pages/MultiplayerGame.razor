@@ -1,0 +1,254 @@
+@page "/multiplayer/{RoomCode}"
+@attribute [Authorize]
+@implements IAsyncDisposable
+@inject HttpClient Http
+@inject CookieAuthenticationStateProvider Auth
+@inject NavigationManager Nav
+@inject ILogger<MultiplayerGame> Logger
+
+<PageTitle>Room @RoomCode – FastGeography</PageTitle>
+
+<div class="game-container">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <h4 class="mb-0">Room: <code class="user-select-all">@RoomCode</code></h4>
+        @if (_roundActive)
+        {
+            <div class="timer-container">
+                <Countdown @ref="_countdown" TimerOut="OnTimerExpired" />
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger alert-dismissible">
+            @_error
+            <button class="btn-close" @onclick="() => _error = null"></button>
+        </div>
+    }
+
+    <div class="row g-3 mb-3">
+        <div class="col-auto">
+            <div class="card" style="min-width:160px">
+                <div class="card-body p-2">
+                    <div class="card-title small fw-bold text-muted mb-1">PLAYERS</div>
+                    @foreach (var p in _players)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            @if (p == _hostName) { <span title="Host">👑</span> }
+                            <span>@p</span>
+                            @if (_submittedNames.Contains(p)) { <span class="badge bg-success ms-auto">✓</span> }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (_isHost && !_roundActive && _connected)
+        {
+            <div class="col-auto d-flex align-items-end">
+                <button class="btn btn-success" @onclick="StartRound"
+                        disabled="@(!_connected)">
+                    Start Round
+                </button>
+            </div>
+        }
+
+        @if (!_connected && !_connecting)
+        {
+            <div class="col-auto d-flex align-items-end">
+                <span class="text-danger">Disconnected. <button class="btn btn-sm btn-link" @onclick="Connect">Reconnect</button></span>
+            </div>
+        }
+    </div>
+
+    @if (_roundActive && !_submitted)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Letter</th><th>City</th><th>Village</th>
+                    <th>Country</th><th>River</th><th>Mountain</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>@_letter</strong></td>
+                    <td><input @bind="_city" class="form-control form-control-sm" /></td>
+                    <td><input @bind="_village" class="form-control form-control-sm" /></td>
+                    <td><input @bind="_country" class="form-control form-control-sm" /></td>
+                    <td><input @bind="_river" class="form-control form-control-sm" /></td>
+                    <td><input @bind="_mountain" class="form-control form-control-sm" /></td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" @onclick="SubmitAnswers">Check</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    }
+
+    @if (_submitted && _roundActive)
+    {
+        <div class="alert alert-info">Answers submitted! Waiting for other players…</div>
+    }
+
+    @if (_results is not null)
+    {
+        <div class="mt-3">
+            <h5>Round Results</h5>
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr><th>#</th><th>Player</th><th>Points</th>
+                        <th>City</th><th>Village</th><th>Country</th><th>River</th><th>Mountain</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _results.Results)
+                    {
+                        <tr class="@(r.Rank == 1 ? "table-warning" : "")">
+                            <td>@r.Rank</td>
+                            <td>@r.PlayerName</td>
+                            <td><strong>@r.TotalPoints</strong></td>
+                            @foreach (var d in r.Details)
+                            {
+                                <td class="@ScoringRules.CssRowClass(d.Points)">
+                                    @(string.IsNullOrEmpty(d.Answer) ? "–" : d.Answer)
+                                    <small class="d-block text-muted">@d.Points pts</small>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string RoomCode { get; set; } = string.Empty;
+
+    private HubConnection? _hub;
+    private bool _connected, _connecting;
+    private bool _isHost;
+    private string _hostName = string.Empty;
+    private List<string> _players = [];
+    private HashSet<string> _submittedNames = [];
+
+    private bool _roundActive, _submitted;
+    private char _letter;
+    private Countdown _countdown = null!;
+
+    private string? _city, _village, _country, _river, _mountain;
+    private RoundResultsMessage? _results;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync() => await Connect();
+
+    private async Task Connect()
+    {
+        _connecting = true;
+        _hub = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hubs/game"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hub.On<RoomStateDto>("RoomJoined", state =>
+        {
+            _players = state.Players;
+            _hostName = state.HostName;
+            _roundActive = state.RoundActive;
+            var user = Auth.CurrentUser;
+            _isHost = user is not null && state.HostName == user.DisplayName;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<string>("PlayerJoined", name =>
+        {
+            if (!_players.Contains(name)) _players.Add(name);
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<string>("PlayerLeft", name =>
+        {
+            _players.Remove(name);
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<RoundStartedMessage>("RoundStarted", msg =>
+        {
+            _letter = msg.Letter;
+            _city = _village = _country = _river = _mountain = string.Empty;
+            _roundActive = true;
+            _submitted = false;
+            _submittedNames.Clear();
+            _results = null;
+            var seconds = Math.Max(1, (int)(msg.EndsAt - DateTime.UtcNow).TotalSeconds);
+            InvokeAsync(() => { _countdown.Start(seconds); StateHasChanged(); });
+        });
+
+        _hub.On("AnswersAccepted", () =>
+        {
+            _submitted = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<RoundResultsMessage>("RoundResults", results =>
+        {
+            _results = results;
+            _roundActive = false;
+            _submitted = false;
+            _submittedNames = results.Results.Select(r => r.PlayerName).ToHashSet();
+            InvokeAsync(() => { _countdown.Stop(); StateHasChanged(); });
+        });
+
+        _hub.On<string>("Error", msg =>
+        {
+            _error = msg;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.Reconnected += _ => { InvokeAsync(async () => { await _hub.SendAsync("JoinRoom", RoomCode); }); return Task.CompletedTask; };
+
+        try
+        {
+            await _hub.StartAsync();
+            _connected = true;
+            await _hub.SendAsync("JoinRoom", RoomCode);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to connect to game hub");
+            _error = "Could not connect to the game server.";
+        }
+        finally
+        {
+            _connecting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartRound()
+    {
+        if (_hub is null) return;
+        _results = null;
+        await _hub.SendAsync("StartRound", RoomCode);
+    }
+
+    private async Task OnTimerExpired() => await SubmitAnswers();
+
+    private async Task SubmitAnswers()
+    {
+        if (_hub is null || !_roundActive || _submitted) return;
+
+        var req = new SubmitAnswersRequest(_city, _village, _country, _river, _mountain);
+        await _hub.SendAsync("SubmitAnswers", RoomCode, req);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+        {
+            await _hub.DisposeAsync();
+        }
+    }
+}

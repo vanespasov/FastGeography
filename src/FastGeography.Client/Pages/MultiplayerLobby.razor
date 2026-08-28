@@ -1,0 +1,70 @@
+@page "/multiplayer"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<PageTitle>Multiplayer – FastGeography</PageTitle>
+
+<div class="container py-4" style="max-width:500px">
+    <h2>Multiplayer</h2>
+    <p class="text-muted">Play live against friends – everyone gets the same letter and 60 seconds.</p>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Create a New Room</h5>
+            <p class="card-text text-muted">Get a join code and share it with friends.</p>
+            <button class="btn btn-success" @onclick="CreateRoom" disabled="@_busy">
+                @(_busy ? "Creating…" : "Create Room")
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Join a Room</h5>
+            <div class="input-group">
+                <input @bind="_joinCode" class="form-control" placeholder="Enter room code"
+                       style="text-transform:uppercase" maxlength="6" />
+                <button class="btn btn-primary" @onclick="JoinRoom" disabled="@_busy">
+                    Join
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _joinCode = string.Empty;
+    private bool _busy;
+    private string? _error;
+
+    private async Task CreateRoom()
+    {
+        _busy = true;
+        _error = null;
+        var resp = await Http.PostAsync("api/rooms", null);
+        _busy = false;
+
+        if (resp.IsSuccessStatusCode)
+        {
+            var result = await resp.Content.ReadFromJsonAsync<CreateRoomResponse>();
+            if (result is not null)
+                Nav.NavigateTo($"/multiplayer/{result.RoomCode}");
+        }
+        else
+        {
+            _error = "Could not create a room. Please try again.";
+        }
+    }
+
+    private void JoinRoom()
+    {
+        if (string.IsNullOrWhiteSpace(_joinCode)) { _error = "Enter a room code."; return; }
+        Nav.NavigateTo($"/multiplayer/{_joinCode.Trim().ToUpperInvariant()}");
+    }
+}
