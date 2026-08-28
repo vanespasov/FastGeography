@@ -12,6 +12,7 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PlayerProfile> PlayerProfiles => Set<PlayerProfile>();
     public DbSet<GameRound> GameRounds => Set<GameRound>();
     public DbSet<RoundSubmission> RoundSubmissions => Set<RoundSubmission>();
+    public DbSet<Toponym> Toponyms => Set<Toponym>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -42,6 +43,17 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
              .WithMany()
              .HasForeignKey(s => s.UserId);
             e.Ignore(s => s.TotalPoints);
+        });
+
+        builder.Entity<Toponym>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.NormalizedName).HasMaxLength(200);
+            e.Property(t => t.DisplayName).HasMaxLength(200);
+            e.Property(t => t.Provider).HasMaxLength(50);
+            // (NormalizedName, Category) is the natural lookup key and must be unique
+            // so concurrent inserts for the same verified answer don't create duplicates.
+            e.HasIndex(t => new { t.NormalizedName, t.Category }).IsUnique();
         });
     }
 }

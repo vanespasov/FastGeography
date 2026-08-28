@@ -90,7 +90,11 @@ public partial class Program
 
         // --- Infrastructure ---
         builder.Services.AddMemoryCache();
-        builder.Services.AddSingleton<IGeocodingService, BingGeocodingService>();
+        // "bing" key  → the raw Bing adapter (singleton, stateless)
+        // unkeyed     → CatalogGeocodingService decorator that checks the DB first,
+        //               falls back to Bing, and persists confirmed results.
+        builder.Services.AddKeyedSingleton<IGeocodingService, BingGeocodingService>("bing");
+        builder.Services.AddSingleton<IGeocodingService, CatalogGeocodingService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddSingleton<IRoomService, RoomService>();
 
@@ -109,15 +113,24 @@ public partial class Program
 
         var app = builder.Build();
 
-        // --- DB: create schema on first run ---
-        // Skipped in Testing (uses InMemory per-test) and when startup DB init fails.
+        // --- DB initialisation ---
+        // • PostgreSQL  → MigrateAsync: applies any pending migrations so existing
+        //                 databases are brought up to date without data loss.
+        // • InMemory dev (no connection string) → EnsureCreated: in-memory stores
+        //   don't support migrations; schema is recreated fresh on each run anyway.
+        // • Testing environment → skipped entirely; each test fixture manages its
+        //   own in-memory database via EnsureCreated.
         if (!app.Environment.IsEnvironment("Testing"))
         {
             try
             {
                 using var scope = app.Services.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                await db.Database.EnsureCreatedAsync();
+
+                if (usePostgres)
+                    await db.Database.MigrateAsync();
+                else
+                    await db.Database.EnsureCreatedAsync();
             }
             catch (Exception ex)
             {
