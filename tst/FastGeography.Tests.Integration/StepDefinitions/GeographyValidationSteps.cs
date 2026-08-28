@@ -6,7 +6,7 @@ using FastGeography.IntegrationTests.Support;
 using FastGeography.Shared;
 
 /// <summary>
-/// Step definitions for <c>Features/BingMapsValidation.feature</c>.
+/// Step definitions for <c>Features/GeographyValidation.feature</c>.
 /// <see cref="GameApiContext"/> is injected per-scenario by Reqnroll's context injection.
 /// </summary>
 [Binding]

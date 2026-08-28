@@ -59,7 +59,7 @@ public sealed class GameApiContext : IDisposable
 
     public async Task ValidateAsync(string location, string locationType)
     {
-        LastResponse = await Client.GetAsync($"/bingmaps/{location}/{locationType}");
+        LastResponse = await Client.GetAsync($"/geocode/{location}/{locationType}");
 
         if (LastResponse.IsSuccessStatusCode)
             LastGeocodeResult = await LastResponse.Content.ReadFromJsonAsync<GeocodeResult>();

@@ -178,7 +178,7 @@
         try
         {
             var result = await HttpClient.GetFromJsonAsync<GeocodeResult>(
-                $"bingmaps/{Uri.EscapeDataString(location.Answer)}/{location.LocationType}");
+                $"geocode/{Uri.EscapeDataString(location.Answer)}/{location.LocationType}");
 
             if (result is null)
                 return ScoringRules.InvalidPoints;

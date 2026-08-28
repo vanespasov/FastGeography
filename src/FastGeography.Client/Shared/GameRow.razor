@@ -1,4 +1,4 @@
-﻿@using FastGeography.Shared;
+@using FastGeography.Shared;
 
 <tr>
     <td class="table-light">
@@ -11,7 +11,7 @@
         @if (game.City.MapsUri != null)
         {
             <a href="@game.City.MapsUri" target="_blank" rel="noopener noreferrer"
-               aria-label="View @game.City.Answer on Bing Maps">
+               aria-label="View @game.City.Answer on map">
                 <img src="images/visit.svg" alt="View on map" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
@@ -22,7 +22,7 @@
         @if (game.Village.MapsUri != null)
         {
             <a href="@game.Village.MapsUri" target="_blank" rel="noopener noreferrer"
-               aria-label="View @game.Village.Answer on Bing Maps">
+               aria-label="View @game.Village.Answer on map">
                 <img src="images/visit.svg" alt="View on map" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
@@ -33,7 +33,7 @@
         @if (game.Country.MapsUri != null)
         {
             <a href="@game.Country.MapsUri" target="_blank" rel="noopener noreferrer"
-               aria-label="View @game.Country.Answer on Bing Maps">
+               aria-label="View @game.Country.Answer on map">
                 <img src="images/visit.svg" alt="View on map" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
@@ -44,7 +44,7 @@
         @if (game.River.MapsUri != null)
         {
             <a href="@game.River.MapsUri" target="_blank" rel="noopener noreferrer"
-               aria-label="View @game.River.Answer on Bing Maps">
+               aria-label="View @game.River.Answer on map">
                 <img src="images/visit.svg" alt="View on map" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
@@ -55,7 +55,7 @@
         @if (game.Mountain.MapsUri != null)
         {
             <a href="@game.Mountain.MapsUri" target="_blank" rel="noopener noreferrer"
-               aria-label="View @game.Mountain.Answer on Bing Maps">
+               aria-label="View @game.Mountain.Answer on map">
                 <img src="images/visit.svg" alt="View on map" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }

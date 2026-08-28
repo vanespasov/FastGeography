@@ -1,4 +1,4 @@
-﻿namespace FastGeography.Server.Controllers;
+namespace FastGeography.Server.Controllers;
 
 using FastGeography.Server.Services;
 using FastGeography.Shared;
@@ -7,14 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 [ApiController]
-[Route("bingmaps")]
 [EnableRateLimiting("geocode")]
-public class BingMapsController : ControllerBase
+public class GeocodingController : ControllerBase
 {
     private readonly IGeocodingService _geocoding;
-    private readonly ILogger<BingMapsController> _logger;
+    private readonly ILogger<GeocodingController> _logger;
 
-    public BingMapsController(IGeocodingService geocoding, ILogger<BingMapsController> logger)
+    public GeocodingController(IGeocodingService geocoding, ILogger<GeocodingController> logger)
     {
         _geocoding = geocoding;
         _logger = logger;
@@ -24,8 +23,10 @@ public class BingMapsController : ControllerBase
     /// Validates a player's geography answer for the given location type.
     /// Location is limited to 100 characters to prevent quota abuse.
     /// Returns a <see cref="GeocodeResult"/> with the awarded points and coordinates.
+    /// The "/bingmaps" path is kept for backward compatibility with existing clients.
     /// </summary>
-    [HttpGet("{location}/{locationType}")]
+    [HttpGet("geocode/{location}/{locationType}")]
+    [HttpGet("bingmaps/{location}/{locationType}")]
     public async Task<IActionResult> GetLocationType(
         string location,
         LocationType locationType,

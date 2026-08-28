@@ -4,32 +4,37 @@ using System.Globalization;
 
 using FastGeography.Server.Data;
 using FastGeography.Server.Data.Entities;
+using FastGeography.Server.Options;
 using FastGeography.Shared;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 /// <summary>
-/// Decorator over the maps-provider geocoding service that keeps a database table of
-/// previously verified toponyms so that repeated lookups skip the external API.
+/// Decorator over the configured geocoding back-end that caches verified toponyms in
+/// the database so repeated lookups skip the external API entirely.
 ///
 /// Lookup order:
 ///   1. <c>Toponyms</c> table (exact match on normalised name + category).
-///   2. Maps provider (Bing).  On a valid result the row is inserted for future calls.
+///   2. Active geocoding provider.  On a valid result the row is inserted for future calls.
 ///   3. Invalid provider responses are never persisted.
 /// </summary>
 public sealed class CatalogGeocodingService : IGeocodingService
 {
     private readonly IGeocodingService _inner;
+    private readonly string _providerName;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<CatalogGeocodingService> _logger;
 
     public CatalogGeocodingService(
-        [FromKeyedServices("bing")] IGeocodingService inner,
+        [FromKeyedServices("active")] IGeocodingService inner,
+        IOptions<GeocodingOptions> options,
         IServiceScopeFactory scopeFactory,
         ILogger<CatalogGeocodingService> logger)
     {
         _inner = inner;
+        _providerName = options.Value.Provider;
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
@@ -65,7 +70,7 @@ public sealed class CatalogGeocodingService : IGeocodingService
             }
         }
 
-        // --- 2. Fall back to maps provider ---
+        // --- 2. Fall back to the configured geocoding provider ---
         var result = await _inner.ValidateAsync(location, locationType, cancellationToken);
 
         // --- 3. Persist verified results for future calls ---
@@ -107,7 +112,7 @@ public sealed class CatalogGeocodingService : IGeocodingService
                 Category = category,
                 Latitude = lat,
                 Longitude = lon,
-                Provider = "Bing",
+                Provider = _providerName,
                 VerifiedAtUtc = DateTime.UtcNow
             });
 

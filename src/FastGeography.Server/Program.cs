@@ -8,6 +8,7 @@ using FastGeography.Server.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 public partial class Program
 {
@@ -84,16 +85,49 @@ public partial class Program
         builder.Services.AddControllersWithViews();
         builder.Services.AddRazorPages();
 
-        // --- Configuration ---
-        builder.Services.Configure<BingMapsOptions>(
-            builder.Configuration.GetSection(BingMapsOptions.Section));
+        // --- Geocoding configuration ---
+        builder.Services.Configure<GeocodingOptions>(
+            builder.Configuration.GetSection(GeocodingOptions.Section));
+
+        // --- HTTP clients for geocoding adapters ---
+        builder.Services.AddHttpClient("nominatim", (sp, client) =>
+        {
+            var opts = sp.GetRequiredService<IOptions<GeocodingOptions>>().Value.Nominatim;
+            client.BaseAddress = new Uri(opts.BaseUrl);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(opts.UserAgent);
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+        builder.Services.AddHttpClient("geonames", (sp, client) =>
+        {
+            var opts = sp.GetRequiredService<IOptions<GeocodingOptions>>().Value.GeoNames;
+            client.BaseAddress = new Uri(opts.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
 
         // --- Infrastructure ---
         builder.Services.AddMemoryCache();
-        // "bing" key  → the raw Bing adapter (singleton, stateless)
-        // unkeyed     → CatalogGeocodingService decorator that checks the DB first,
-        //               falls back to Bing, and persists confirmed results.
+
+        // Register all geocoding adapters under their own keys.
         builder.Services.AddKeyedSingleton<IGeocodingService, BingGeocodingService>("bing");
+        builder.Services.AddKeyedSingleton<IGeocodingService, NominatimGeocodingService>("nominatim");
+        builder.Services.AddKeyedSingleton<IGeocodingService, GeoNamesGeocodingService>("geonames");
+
+        // "active" → whichever adapter is selected by Geocoding:Provider (resolved lazily
+        //            so the factory reads the live options value).
+        builder.Services.AddKeyedSingleton<IGeocodingService>("active", (sp, _) =>
+        {
+            var opts = sp.GetRequiredService<IOptions<GeocodingOptions>>().Value;
+            var key = opts.Provider.ToLowerInvariant() switch
+            {
+                "geonames" => "geonames",
+                "bing"     => "bing",
+                _          => "nominatim"   // default: Nominatim
+            };
+            return sp.GetRequiredKeyedService<IGeocodingService>(key);
+        });
+
+        // Unkeyed → CatalogGeocodingService decorator: checks DB first, falls back to
+        // "active" provider, and persists confirmed results for future lookups.
         builder.Services.AddSingleton<IGeocodingService, CatalogGeocodingService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddSingleton<IRoomService, RoomService>();

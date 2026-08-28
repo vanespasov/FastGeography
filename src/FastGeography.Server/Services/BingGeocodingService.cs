@@ -13,12 +13,12 @@ public sealed class BingGeocodingService : IGeocodingService
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(24);
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
 
-    private readonly BingMapsOptions _options;
+    private readonly GeocodingOptions _options;
     private readonly IMemoryCache _cache;
     private readonly ILogger<BingGeocodingService> _logger;
 
     public BingGeocodingService(
-        IOptions<BingMapsOptions> options,
+        IOptions<GeocodingOptions> options,
         IMemoryCache cache,
         ILogger<BingGeocodingService> logger)
     {
@@ -32,7 +32,7 @@ public sealed class BingGeocodingService : IGeocodingService
         LocationType locationType,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (string.IsNullOrWhiteSpace(_options.BingMaps.ApiKey))
         {
             _logger.LogWarning(
                 "Bing Maps API key is not configured. Returning invalid result for {Location}/{LocationType}",
@@ -40,7 +40,7 @@ public sealed class BingGeocodingService : IGeocodingService
             return Invalid(locationType);
         }
 
-        var cacheKey = $"geocode:{location.Trim().ToLowerInvariant()}:{locationType}";
+        var cacheKey = $"geocode:bing:{location.Trim().ToLowerInvariant()}:{locationType}";
 
         if (_cache.TryGetValue(cacheKey, out GeocodeResult? cached) && cached is not null)
         {
@@ -66,7 +66,7 @@ public sealed class BingGeocodingService : IGeocodingService
                 Query = location,
                 IncludeIso2 = true,
                 MaxResults = 1,
-                BingMapsKey = _options.ApiKey
+                BingMapsKey = _options.BingMaps.ApiKey
             };
 
             var response = await request.Execute().WaitAsync(RequestTimeout, cancellationToken);

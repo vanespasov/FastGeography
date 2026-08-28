@@ -2,11 +2,13 @@ namespace FastGeography.IntegrationTests;
 
 using FastGeography.Server.Data;
 using FastGeography.Server.Data.Entities;
+using FastGeography.Server.Options;
 using FastGeography.Server.Services;
 using FastGeography.Shared;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Verifies the <see cref="CatalogGeocodingService"/> lookup / insert / fallback logic
@@ -24,7 +26,8 @@ public sealed class CatalogGeocodingServiceTests : IDisposable
 
         var services = new ServiceCollection();
         services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(dbName));
-        services.AddKeyedSingleton<IGeocodingService>("bing", (_, _) => _spy);
+        services.Configure<GeocodingOptions>(o => o.Provider = "TestSpy");
+        services.AddKeyedSingleton<IGeocodingService>("active", (_, _) => _spy);
         services.AddSingleton<IGeocodingService, CatalogGeocodingService>();
         services.AddLogging();
 
@@ -76,7 +79,7 @@ public sealed class CatalogGeocodingServiceTests : IDisposable
 
         var toponym = await FindToponymAsync("paris", LocationType.City);
         Assert.NotNull(toponym);
-        Assert.Equal("Bing", toponym.Provider);
+        Assert.Equal("TestSpy", toponym.Provider);
         Assert.Equal(48.8566, toponym.Latitude);
         Assert.Equal(2.3522, toponym.Longitude);
     }
