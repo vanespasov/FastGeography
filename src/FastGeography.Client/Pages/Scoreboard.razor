@@ -1,28 +1,30 @@
 @page "/scoreboard"
 @inject HttpClient Http
+@inject IStringLocalizer<UiStrings> L
 
-<PageTitle>Scoreboard – FastGeography</PageTitle>
+<PageTitle>@L["Sb_PageTitle"]</PageTitle>
+
 @if (_error is not null)
 {
     <div class="alert alert-danger" role="alert">
-        <strong>Could not load scoreboard.</strong> @_error
+        <strong>@L["Sb_LoadError"]</strong> @_error
     </div>
 }
 
 <div class="container-fluid py-3">
-    <h2>Global Scoreboard</h2>
+    <h2>@L["Sb_Heading"]</h2>
 
     <div class="d-flex gap-2 mb-3">
         <button class="btn @(_filter == "alltime" ? "btn-primary" : "btn-outline-primary")"
-                @onclick='() => LoadLeaderboard("alltime")'>All Time</button>
+                @onclick='() => LoadLeaderboard("alltime")'>@L["Sb_AllTime"]</button>
         <button class="btn @(_filter == "week" ? "btn-primary" : "btn-outline-primary")"
-                @onclick='() => LoadLeaderboard("week")'>This Week</button>
+                @onclick='() => LoadLeaderboard("week")'>@L["Sb_ThisWeek"]</button>
     </div>
 
     <AuthorizeView>
         <Authorized>
             <div class="mb-3">
-                <a href="/scoreboard/me" class="btn btn-outline-secondary btn-sm">My Stats</a>
+                <a href="/scoreboard/me" class="btn btn-outline-secondary btn-sm">@L["Sb_MyStats"]</a>
             </div>
         </Authorized>
     </AuthorizeView>
@@ -31,12 +33,12 @@
     {
         <div class="d-flex align-items-center gap-2">
             <div class="spinner-border spinner-border-sm"></div>
-            <span>Loading…</span>
+            <span>@L["Sb_Loading"]</span>
         </div>
     }
     else if (_entries is null || !_entries.Any())
     {
-        <p class="text-muted">No scores yet. Be the first to play a ranked round!</p>
+        <p class="text-muted">@L["Sb_NoScores"]</p>
     }
     else
     {
@@ -44,11 +46,11 @@
             <table class="table table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th>#</th>
-                        <th>Explorer</th>
-                        <th>Badge</th>
-                        <th class="text-end">Points</th>
-                        <th class="text-end">Games</th>
+                        <th>@L["Sb_ColRank"]</th>
+                        <th>@L["Sb_ColExplorer"]</th>
+                        <th>@L["Sb_ColBadge"]</th>
+                        <th class="text-end">@L["Sb_ColPoints"]</th>
+                        <th class="text-end">@L["Sb_ColGames"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -62,7 +64,7 @@
                                 else { <span class="text-muted">@e.Rank</span> }
                             </td>
                             <td><strong>@e.DisplayName</strong></td>
-                            <td><span class="badge bg-secondary">@e.Badge</span></td>
+                            <td><span class="badge bg-secondary">@L[$"Badge_{e.Badge}"]</span></td>
                             <td class="text-end fw-bold">@e.CareerPoints</td>
                             <td class="text-end">@e.GamesPlayed</td>
                         </tr>

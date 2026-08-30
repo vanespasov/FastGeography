@@ -1,12 +1,13 @@
 ﻿@inject CookieAuthenticationStateProvider Auth
 @inject NavigationManager Nav
 @inject HttpClient Http
-@inject IJSRuntime JS
+@inject GameLanguageState Language
+@inject IStringLocalizer<UiStrings> L
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">FastGeography</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+        <button title="@L["Nav_NavigationMenu"]" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
@@ -16,35 +17,35 @@
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="fastgeography" Match="NavLinkMatch.All">
-                <span class="oi oi-play-circle" aria-hidden="true"></span> Casual Play
+                <span class="oi oi-play-circle" aria-hidden="true"></span> @L["Nav_CasualPlay"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="ranked">
-                <span class="oi oi-star" aria-hidden="true"></span> Ranked
+                <span class="oi oi-star" aria-hidden="true"></span> @L["Nav_Ranked"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="multiplayer">
-                <span class="oi oi-people" aria-hidden="true"></span> Multiplayer
+                <span class="oi oi-people" aria-hidden="true"></span> @L["Nav_Multiplayer"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="scoreboard">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Scoreboard
+                <span class="oi oi-list-rich" aria-hidden="true"></span> @L["Nav_Scoreboard"]
             </NavLink>
         </div>
         <hr class="border-secondary my-1" />
 
         @* ── Language picker ── *@
-        <div class="nav-item px-3 py-1">
+        <div class="nav-item px-3 py-1" @onclick:stopPropagation="true">
             <div class="d-flex align-items-center gap-2">
                 <span class="oi oi-globe" aria-hidden="true" style="color:var(--bs-nav-link-color,rgba(255,255,255,.55))"></span>
                 <select class="form-select form-select-sm bg-transparent text-white border-secondary"
                         style="width:auto"
                         value="@_currentLang"
                         @onchange="OnLanguageChanged"
-                        aria-label="Choose game language">
+                        aria-label="@L["Nav_ChooseLanguage"]">
                     <option value="en">English</option>
                     <option value="mk">Македонски</option>
                 </select>
@@ -62,19 +63,19 @@
                 </div>
                 <div class="nav-item px-3">
                     <button class="nav-link btn btn-link text-start p-0" @onclick="Logout">
-                        <span class="oi oi-account-logout" aria-hidden="true"></span> Sign Out
+                        <span class="oi oi-account-logout" aria-hidden="true"></span> @L["Nav_SignOut"]
                     </button>
                 </div>
             </Authorized>
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="login">
-                        <span class="oi oi-account-login" aria-hidden="true"></span> Sign In
+                        <span class="oi oi-account-login" aria-hidden="true"></span> @L["Nav_SignIn"]
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="register">
-                        <span class="oi oi-plus" aria-hidden="true"></span> Register
+                        <span class="oi oi-plus" aria-hidden="true"></span> @L["Nav_Register"]
                     </NavLink>
                 </div>
             </NotAuthorized>
@@ -93,14 +94,13 @@
         var user = Auth.CurrentUser;
         if (user is not null)
         {
-            _currentLang = user.PreferredLanguage;
+            await Language.SetAsync(user.PreferredLanguage);
         }
         else
         {
-            _currentLang = await JS.InvokeAsync<string?>("localStorage.getItem", "fg_lang") ?? "en";
+            await Language.EnsureLoadedAsync();
         }
-        // Keep localStorage in sync.
-        await JS.InvokeVoidAsync("localStorage.setItem", "fg_lang", _currentLang);
+        _currentLang = Language.Code;
     }
 
     private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
@@ -108,15 +108,13 @@
     private async Task OnLanguageChanged(ChangeEventArgs e)
     {
         var lang = e.Value?.ToString() ?? "en";
-        _currentLang = lang;
-
-        // Persist to localStorage so every page can read it synchronously.
-        await JS.InvokeVoidAsync("localStorage.setItem", "fg_lang", lang);
+        await Language.SetAsync(lang);
+        _currentLang = Language.Code;
 
         // Persist to the server when signed in.
         if (Auth.CurrentUser is not null)
         {
-            await Http.PatchAsJsonAsync("api/auth/language", new SetLanguageRequest(lang));
+            await Http.PatchAsJsonAsync("api/auth/language", new SetLanguageRequest(Language.Code));
         }
     }
 

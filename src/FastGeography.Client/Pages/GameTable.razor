@@ -1,21 +1,23 @@
 ﻿@page "/"
 @page "/fastgeography"
+@implements IDisposable
 @using System.Net.Http.Json
 @using System.Linq
 @using FastGeography.Shared
 @inject HttpClient HttpClient
 @inject ILogger<GameTable> Logger
-@inject IJSRuntime JS
+@inject GameLanguageState Language
+@inject IStringLocalizer<UiStrings> L
 
 <div class="game-container">
     <div class="game-header">
         <button @onclick="StartNewGame"
                 class="btn btn-lg btn-primary game-button"
                 disabled=@(isStarted || isChecking)
-                aria-label="Start a new game">
-            <i class="oi oi-play-circle" aria-hidden="true"></i> Start New Adventure!
+                aria-label="@L["Game_StartNewGame"]">
+            <i class="oi oi-play-circle" aria-hidden="true"></i> @L["Game_StartNewAdventure"]
         </button>
-        <div class="timer-container" role="timer" aria-label="Game countdown">
+        <div class="timer-container" role="timer" aria-label="@L["Game_Countdown"]">
             <Countdown @ref="countdown" TimerOut="OnTimerExpired" />
         </div>
     </div>
@@ -24,7 +26,7 @@
     {
         <div class="alert alert-warning alert-dismissible" role="alert">
             @errorMessage
-            <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Dismiss"></button>
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="@L["Game_Dismiss"]"></button>
         </div>
     }
 
@@ -32,40 +34,42 @@
     {
         <div class="d-flex align-items-center gap-2 my-2" role="status" aria-live="polite">
             <div class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></div>
-            <span>Checking your answers…</span>
+            <span>@L["Game_CheckingAnswers"]</span>
         </div>
     }
 
     @if (!games.Any())
     {
-        <p><em>No game started. Please start one.</em></p>
+        <p><em>@L["Game_NoGameStarted"]</em></p>
     }
     else
     {
         <div aria-live="polite" aria-atomic="true">
-            <label>Total points: @totalPoints</label>
+            <label>@string.Format(L["Game_TotalPoints"]!, totalPoints)</label>
         </div>
 
         @if (totalPoints > ScoringRules.AchievementThreshold)
         {
+            var badge = BadgeCalculator.Calculate(totalPoints);
+            var badgeName = L[$"Badge_{badge}"].Value;
             <div class="achievement-banner" role="status" aria-live="polite">
                 <h3>@encourageMessage</h3>
-                <h3>Amazing Explorer! You earned the @BadgeCalculator.Calculate(totalPoints) badge!</h3>
-                <img src=@GetBadgeImagePath(totalPoints) class="badge-image" alt="@BadgeCalculator.Calculate(totalPoints) badge" />
+                <h3>@string.Format(L["Game_AmazingExplorer"]!, badgeName)</h3>
+                <img src=@GetBadgeImagePath(totalPoints) class="badge-image" alt="@badgeName" />
             </div>
         }
 
-        <table class="table" aria-label="Geography game answers">
+        <table class="table" aria-label="@L["Game_AnswersTable"]">
             <thead>
                 <tr>
-                    <th scope="col">Letter</th>
-                    <th scope="col">City</th>
-                    <th scope="col">Village</th>
-                    <th scope="col">Country</th>
-                    <th scope="col">River</th>
-                    <th scope="col">Mountain</th>
-                    <th scope="col">Time (s)</th>
-                    <th scope="col">Action</th>
+                    <th scope="col">@L["Col_Letter"]</th>
+                    <th scope="col">@L["Col_City"]</th>
+                    <th scope="col">@L["Col_Village"]</th>
+                    <th scope="col">@L["Col_Country"]</th>
+                    <th scope="col">@L["Col_River"]</th>
+                    <th scope="col">@L["Col_Mountain"]</th>
+                    <th scope="col">@L["Col_TimeSec"]</th>
+                    <th scope="col">@L["Col_Action"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -101,13 +105,23 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _langCode = await JS.InvokeAsync<string?>("localStorage.getItem", "fg_lang") ?? "en";
+        await Language.EnsureLoadedAsync();
+        _langCode = Language.Code;
+        Language.Changed += OnLanguageChanged;
     }
 
-    private void StartNewGame()
+    private void OnLanguageChanged()
     {
+        _langCode = Language.Code;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StartNewGame()
+    {
+        await Language.EnsureLoadedAsync();
+        _langCode = Language.Code;
         isStarted = true;
-        var language = FastGeography.Shared.GameLanguageExtensions.Parse(_langCode);
+        var language = GameLanguageExtensions.Parse(_langCode);
         var letter = Alphabet.RandomLetter(language);
         var key = Guid.NewGuid();
 
@@ -147,7 +161,6 @@
 
         try
         {
-            // Validate all five answers in parallel instead of sequentially
             var cityTask     = ValidateLocation(game.City, game.Letter);
             var villageTask  = ValidateLocation(game.Village, game.Letter);
             var countryTask  = ValidateLocation(game.Country, game.Letter);
@@ -198,7 +211,7 @@
         {
             Logger.LogError(ex, "Failed to validate {LocationType} answer '{Answer}'",
                 location.LocationType, location.Answer);
-            errorMessage = "Some answers could not be checked. Please try again.";
+            errorMessage = L["Game_ValidationError"];
             return ScoringRules.EmptyPoints;
         }
     }
@@ -208,10 +221,12 @@
 
     private string GetEncouragingMessage(int points)
     {
-        if (points >= 80) return "Outstanding! You are a Geography Genius!";
-        if (points >= 60) return "Amazing job! Keep exploring!";
-        if (points >= 40) return "Good work! You are learning fast!";
-        if (points >= 20) return "Nice try! Let's discover more places!";
-        return "Every game makes you smarter! Try again!";
+        if (points >= 80) return L["Game_Encourage_Outstanding"];
+        if (points >= 60) return L["Game_Encourage_Amazing"];
+        if (points >= 40) return L["Game_Encourage_Good"];
+        if (points >= 20) return L["Game_Encourage_NiceTry"];
+        return L["Game_Encourage_TryAgain"];
     }
+
+    public void Dispose() => Language.Changed -= OnLanguageChanged;
 }

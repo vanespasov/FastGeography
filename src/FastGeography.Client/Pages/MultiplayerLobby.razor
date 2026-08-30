@@ -2,12 +2,13 @@
 @attribute [Authorize]
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject IStringLocalizer<UiStrings> L
 
-<PageTitle>Multiplayer – FastGeography</PageTitle>
+<PageTitle>@L["Mp_PageTitle"]</PageTitle>
 
 <div class="container py-4" style="max-width:500px">
-    <h2>Multiplayer</h2>
-    <p class="text-muted">Play live against friends – everyone gets the same letter and 60 seconds.</p>
+    <h2>@L["Mp_Heading"]</h2>
+    <p class="text-muted">@L["Mp_Description"]</p>
 
     @if (!string.IsNullOrEmpty(_error))
     {
@@ -16,29 +17,29 @@
 
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Create a New Room</h5>
-            <p class="card-text text-muted">Get a join code and share it with friends.</p>
+            <h5 class="card-title">@L["Mp_CreateRoomTitle"]</h5>
+            <p class="card-text text-muted">@L["Mp_CreateRoomDesc"]</p>
             <div class="mb-3">
-                <label class="form-label" for="langSelect">Game language</label>
+                <label class="form-label" for="langSelect">@L["Mp_GameLanguageLabel"]</label>
                 <select id="langSelect" class="form-select" @bind="_createLang">
-                    <option value="en">English (Latin A–Z)</option>
-                    <option value="mk">Македонски / Macedonian (Cyrillic А–Ш)</option>
+                    <option value="en">@L["Mp_LangOptionEn"]</option>
+                    <option value="mk">@L["Mp_LangOptionMk"]</option>
                 </select>
             </div>
             <button class="btn btn-success" @onclick="CreateRoom" disabled="@_busy">
-                @(_busy ? "Creating…" : "Create Room")
+                @(_busy ? L["Mp_Creating"].Value : L["Mp_CreateRoom"].Value)
             </button>
         </div>
     </div>
 
     <div class="card">
         <div class="card-body">
-            <h5 class="card-title">Join a Room</h5>
+            <h5 class="card-title">@L["Mp_JoinRoomTitle"]</h5>
             <div class="input-group">
-                <input @bind="_joinCode" class="form-control" placeholder="Enter room code"
+                <input @bind="_joinCode" class="form-control" placeholder="@L["Mp_RoomCodePlaceholder"]"
                        style="text-transform:uppercase" maxlength="6" />
                 <button class="btn btn-primary" @onclick="JoinRoom" disabled="@_busy">
-                    Join
+                    @L["Mp_Join"]
                 </button>
             </div>
         </div>
@@ -66,13 +67,13 @@
         }
         else
         {
-            _error = "Could not create a room. Please try again.";
+            _error = L["Mp_CreateError"];
         }
     }
 
     private void JoinRoom()
     {
-        if (string.IsNullOrWhiteSpace(_joinCode)) { _error = "Enter a room code."; return; }
+        if (string.IsNullOrWhiteSpace(_joinCode)) { _error = L["Mp_JoinCodeEmpty"]; return; }
         Nav.NavigateTo($"/multiplayer/{_joinCode.Trim().ToUpperInvariant()}");
     }
 }

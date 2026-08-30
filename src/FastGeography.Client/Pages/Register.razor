@@ -1,12 +1,13 @@
 @page "/register"
 @inject CookieAuthenticationStateProvider Auth
 @inject NavigationManager Nav
+@inject IStringLocalizer<UiStrings> L
 
-<PageTitle>Register – FastGeography</PageTitle>
+<PageTitle>@L["Reg_PageTitle"]</PageTitle>
 
 <div class="auth-container">
     <div class="auth-card">
-        <h2>Create Account</h2>
+        <h2>@L["Reg_Heading"]</h2>
 
         @if (!string.IsNullOrEmpty(_error))
         {
@@ -17,33 +18,33 @@
             <DataAnnotationsValidator />
 
             <div class="mb-3">
-                <label class="form-label">Display Name</label>
+                <label class="form-label">@L["Reg_DisplayName"]</label>
                 <InputText @bind-Value="_model.DisplayName" class="form-control"
-                           placeholder="Explorer name" autocomplete="nickname" />
+                           placeholder="@L["Reg_DisplayNamePlaceholder"]" autocomplete="nickname" />
                 <ValidationMessage For="() => _model.DisplayName" />
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Email</label>
+                <label class="form-label">@L["Reg_Email"]</label>
                 <InputText @bind-Value="_model.Email" class="form-control" type="email"
                            placeholder="you@example.com" autocomplete="email" />
                 <ValidationMessage For="() => _model.Email" />
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Password <small class="text-muted">(6+ characters)</small></label>
+                <label class="form-label">@L["Reg_Password"] <small class="text-muted">@L["Reg_PasswordHint"]</small></label>
                 <InputText @bind-Value="_model.Password" class="form-control" type="password"
-                           placeholder="Password" autocomplete="new-password" />
+                           placeholder="@L["Reg_Password"]" autocomplete="new-password" />
                 <ValidationMessage For="() => _model.Password" />
             </div>
 
             <button type="submit" class="btn btn-primary w-100" disabled="@_busy">
-                @(_busy ? "Creating account…" : "Create Account")
+                @(_busy ? L["Reg_Busy"].Value : L["Reg_Submit"].Value)
             </button>
         </EditForm>
 
         <p class="mt-3 text-center">
-            Already have an account? <a href="/login">Sign in</a>
+            @L["Reg_HaveAccount"] <a href="/login">@L["Reg_SignInLink"]</a>
         </p>
     </div>
 </div>
@@ -61,7 +62,7 @@
         _busy = false;
 
         if (ok) Nav.NavigateTo("/");
-        else _error = err ?? "Registration failed.";
+        else _error = err ?? L["Reg_Failed"];
     }
 
     private sealed class RegisterModel
