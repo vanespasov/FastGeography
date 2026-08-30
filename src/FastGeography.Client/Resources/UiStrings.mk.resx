@@ -180,6 +180,10 @@
   <data name="Reg_SignInLink" xml:space="preserve"><value>Најавете се</value></data>
   <data name="Reg_Failed" xml:space="preserve"><value>Регистрацијата не успеа.</value></data>
 
+  <!-- ── Панел со приказни за дестинации ── -->
+  <data name="Stories_Heading" xml:space="preserve"><value>Ги отклучивте приказните за дестинации!</value></data>
+  <data name="Stories_Loading" xml:space="preserve"><value>Вчитување патни приказни…</value></data>
+
   <!-- ── 404 ── -->
   <data name="App_NotFound" xml:space="preserve"><value>Жал ни е, на оваа адреса нема ништо.</value></data>
 

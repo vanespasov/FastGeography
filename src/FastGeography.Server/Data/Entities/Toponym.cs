@@ -32,4 +32,10 @@ public sealed class Toponym
 
     /// <summary>UTC timestamp when the provider confirmed the toponym.</summary>
     public DateTime VerifiedAtUtc { get; set; }
+
+    /// <summary>
+    /// Cached AI-generated travel micro-story (40–70 words). Null until first request.
+    /// Keyed by (NormalizedName, Category, LanguageCode) so each language gets its own story.
+    /// </summary>
+    public string? Story { get; set; }
 }

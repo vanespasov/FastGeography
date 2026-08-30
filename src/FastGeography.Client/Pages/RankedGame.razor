@@ -63,6 +63,10 @@
                 }
             </tbody>
         </table>
+        @if (_storyPlaces is { Count: > 0 })
+        {
+            <DestinationStories Places="@_storyPlaces" />
+        }
     }
 
     @if (_roundActive && _roundId.HasValue)
@@ -110,11 +114,13 @@
     private SoloSubmitResponse? _result;
 
     private string? _city, _village, _country, _river, _mountain;
+    private List<StoryRequest>? _storyPlaces;
 
     private async Task StartRound()
     {
         _error = null;
         _result = null;
+        _storyPlaces = null;
 
         await Language.EnsureLoadedAsync();
         _languageCode = Language.Code;
@@ -159,6 +165,10 @@
             if (resp.IsSuccessStatusCode)
             {
                 _result = await resp.Content.ReadFromJsonAsync<SoloSubmitResponse>();
+                _storyPlaces = _result?.Details
+                    .Where(d => d.Points == ScoringRules.ValidPoints && !string.IsNullOrWhiteSpace(d.Answer))
+                    .Select(d => new StoryRequest(d.Answer!, d.Type, d.Coordinates, _languageCode))
+                    .ToList();
             }
             else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
             {

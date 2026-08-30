@@ -146,6 +146,11 @@
         </table>
     }
 
+    @if (_storyPlaces is { Count: > 0 })
+    {
+        <DestinationStories Places="@_storyPlaces" />
+    }
+
     @if (_setComplete && _myRows.Count > 0)
     {
         <div class="alert alert-success">
@@ -208,6 +213,7 @@
     private string? _city, _village, _country, _river, _mountain;
     private RoundResultsMessage? _results;
     private string? _error;
+    private List<StoryRequest>? _storyPlaces;
 
     private readonly List<CompletedRoundRow> _myRows = [];
     private string _myDisplayName = string.Empty;
@@ -299,7 +305,13 @@
 
             var myResult = results.Results.FirstOrDefault(r => r.PlayerName == _myDisplayName);
             if (myResult is not null)
+            {
                 _myRows.Add(new CompletedRoundRow(_letter, myResult.Details));
+                _storyPlaces = myResult.Details
+                    .Where(d => d.Points == ScoringRules.ValidPoints && !string.IsNullOrWhiteSpace(d.Answer))
+                    .Select(d => new StoryRequest(d.Answer!, d.Type, d.Coordinates, _languageCode))
+                    .ToList();
+            }
 
             InvokeAsync(() => { _countdown?.Stop(); StateHasChanged(); });
         });
@@ -307,6 +319,7 @@
         _hub.On("NewSetStarted", () =>
         {
             _myRows.Clear();
+            _storyPlaces = null;
             _roundsCompleted = 0;
             _setComplete = false;
             _results = null;

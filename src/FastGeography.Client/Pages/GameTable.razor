@@ -42,7 +42,13 @@
     {
         <p><em>@L["Game_NoGameStarted"]</em></p>
     }
-    else
+
+    @if (_storyPlaces is not null)
+    {
+        <DestinationStories Places="@_storyPlaces" />
+    }
+
+    @if (games.Any())
     {
         <div aria-live="polite" aria-atomic="true">
             <label>@string.Format(L["Game_TotalPoints"]!, totalPoints)</label>
@@ -102,6 +108,7 @@
     private bool isChecking = false;
     private Countdown countdown = null!;
     private string _langCode = "en";
+    private List<StoryRequest>? _storyPlaces;
 
     protected override async Task OnInitializedAsync()
     {
@@ -183,6 +190,8 @@
         totalPoints += game.TotalPoints;
         encourageMessage = GetEncouragingMessage(game.TotalPoints);
 
+        _storyPlaces = BuildStoryRequests(game);
+
         games.Remove(game.Id);
         games.Add(game.Id, game);
         isStarted = false;
@@ -214,6 +223,18 @@
             errorMessage = L["Game_ValidationError"];
             return ScoringRules.EmptyPoints;
         }
+    }
+
+    private List<StoryRequest> BuildStoryRequests(Game game)
+    {
+        var locations = new[]
+        {
+            game.City, game.Village, game.Country, game.River, game.Mountain
+        };
+        return locations
+            .Where(l => l is not null && l.Points == ScoringRules.ValidPoints && !string.IsNullOrWhiteSpace(l.Answer))
+            .Select(l => new StoryRequest(l!.Answer!, l.LocationType, l.Coordinates, _langCode))
+            .ToList();
     }
 
     private static string GetBadgeImagePath(int points) =>

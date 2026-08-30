@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FastGeography.Shared\FastGeography.Shared.csproj" />
+    <ProjectReference Include="..\..\src\FastGeography.Server\FastGeography.Server.csproj" />
   </ItemGroup>
 
   <ItemGroup>

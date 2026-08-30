@@ -135,12 +135,24 @@ public partial class Program
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddSingleton<IRoomService, RoomService>();
 
-        // --- Rate limiting: 60 geocode requests per minute per client ---
+        // --- Destination AI story service (OpenAI, Grok, Claude, Ollama) ---
+        builder.Services.AddDestinationStoryServices(builder.Configuration);
+
+        // --- Rate limiting ---
         builder.Services.AddRateLimiter(limiter =>
         {
+            // 60 geocode requests per minute per client
             limiter.AddFixedWindowLimiter("geocode", o =>
             {
                 o.PermitLimit = 60;
+                o.Window = TimeSpan.FromMinutes(1);
+                o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                o.QueueLimit = 0;
+            });
+            // 20 story requests per minute per client
+            limiter.AddFixedWindowLimiter("stories", o =>
+            {
+                o.PermitLimit = 20;
                 o.Window = TimeSpan.FromMinutes(1);
                 o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                 o.QueueLimit = 0;

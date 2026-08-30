@@ -29,6 +29,7 @@ public sealed class TestAppFixture : IDisposable
                 b.ConfigureTestServices(s =>
                 {
                     s.AddSingleton<IGeocodingService, FakeGeocodingService>();
+                    s.AddSingleton<IDestinationStoryService, FakeDestinationStoryService>();
 
                     var toRemove = s
                         .Where(d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>)

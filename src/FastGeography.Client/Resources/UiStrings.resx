@@ -180,6 +180,10 @@
   <data name="Reg_SignInLink" xml:space="preserve"><value>Sign in</value></data>
   <data name="Reg_Failed" xml:space="preserve"><value>Registration failed.</value></data>
 
+  <!-- ── Destination Stories reward panel ── -->
+  <data name="Stories_Heading" xml:space="preserve"><value>You unlocked destination stories!</value></data>
+  <data name="Stories_Loading" xml:space="preserve"><value>Loading travel stories…</value></data>
+
   <!-- ── 404 / App ── -->
   <data name="App_NotFound" xml:space="preserve"><value>Sorry, there's nothing at this address.</value></data>
 

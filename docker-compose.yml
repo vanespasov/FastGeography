@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: fastgeography
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__fastgeography-db: Host=postgres;Port=5432;Database=fastgeography;Username=postgres;Password=${POSTGRES_PASSWORD:-change-me}
+      DestinationAi__Provider: ${DestinationAi__Provider:-None}
+      DestinationAi__Model: ${DestinationAi__Model:-gpt-4o-mini}
+      DestinationAi__ApiKey: ${DestinationAi__ApiKey:-}
+      DestinationAi__BaseUrl: ${DestinationAi__BaseUrl:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GROK_API_KEY: ${GROK_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Optional local LLM. First run: docker compose exec ollama ollama pull llama3.2:3b
+  # Requires ~8 GB RAM for llama3.2:3b on CPU. Do not expose port 11434 publicly in production.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    volumes:
+      - ollama-data:/root/.ollama
+    # Internal only — server reaches ollama via Docker network when BaseUrl=http://ollama:11434/v1
+
+volumes:
+  postgres-data:
+  ollama-data:
