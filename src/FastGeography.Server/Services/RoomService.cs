@@ -2,6 +2,9 @@ namespace FastGeography.Server.Services;
 
 using System.Collections.Concurrent;
 
+using FastGeography.Shared;
+using FastGeography.Shared.Dtos;
+
 public sealed class GameRoom
 {
     public string Code { get; set; } = string.Empty;
@@ -24,6 +27,17 @@ public sealed class GameRoom
 
     public CancellationTokenSource? RoundTimerCts { get; set; }
     public DateTime LastActivity { get; set; } = DateTime.UtcNow;
+
+    // ── 5-round set tracking ───────────────────────────────────────────────
+
+    /// <summary>How many rounds have been finalised in the current set (0–SetSize).</summary>
+    public int RoundsCompletedInSet { get; set; }
+
+    /// <summary>True once all rounds in the set have been played.</summary>
+    public bool SetComplete => RoundsCompletedInSet >= ScoringRules.SetSize;
+
+    /// <summary>Map: userId → ordered list of that player's completed round rows for this set.</summary>
+    public ConcurrentDictionary<string, List<CompletedRoundRow>> PlayerSetHistory { get; } = new();
 }
 
 public interface IRoomService
@@ -32,6 +46,7 @@ public interface IRoomService
     GameRoom? GetRoom(string code);
     bool TryJoin(string code, string userId, string displayName, string connectionId);
     void Leave(string userId, string connectionId);
+    GameRoom? FindRoomByConnection(string connectionId);
     void Cleanup();
 }
 
@@ -90,6 +105,9 @@ public sealed class RoomService : IRoomService
             }
         }
     }
+
+    public GameRoom? FindRoomByConnection(string connectionId) =>
+        _rooms.Values.FirstOrDefault(r => r.Connections.Values.Contains(connectionId));
 
     public void Cleanup()
     {

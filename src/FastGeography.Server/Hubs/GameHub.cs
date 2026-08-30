@@ -34,16 +34,30 @@ public sealed class GameHub : Hub
 
     // ── Connection lifecycle ────────────────────────────────────────────────
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = UserId();
         if (userId is not null)
         {
-            // Find which room this connection was in and notify others.
-            // RoomService.Leave will remove the player from the room.
-            _roomService.Leave(userId, Context.ConnectionId);
+            var room = _roomService.FindRoomByConnection(Context.ConnectionId);
+            if (room is not null)
+            {
+                var displayName = room.Players.TryGetValue(userId, out var n) ? n : null;
+                bool wasHost = room.HostUserId == userId;
+                string roomCode = room.Code;
+
+                _roomService.Leave(userId, Context.ConnectionId);
+
+                if (displayName is not null && _roomService.GetRoom(roomCode) is { } updatedRoom)
+                    await NotifyLeaveAsync(GroupKey(roomCode), updatedRoom, displayName, wasHost);
+            }
+            else
+            {
+                _roomService.Leave(userId, Context.ConnectionId);
+            }
         }
-        return base.OnDisconnectedAsync(exception);
+
+        await base.OnDisconnectedAsync(exception);
     }
 
     // ── Hub methods (client → server) ──────────────────────────────────────
@@ -63,12 +77,39 @@ public sealed class GameHub : Hub
         var room = _roomService.GetRoom(roomCode)!;
         var players = room.Players.Values.ToList();
         var hostName = room.Players.TryGetValue(room.HostUserId, out var h) ? h : "Host";
+        var myHistory = room.PlayerSetHistory.TryGetValue(userId, out var hist) ? hist : [];
 
         await Clients.Caller.SendAsync("RoomJoined", new RoomStateDto(
-            roomCode, players, hostName, room.RoundActive));
+            roomCode,
+            players,
+            hostName,
+            room.RoundActive,
+            room.RoundsCompletedInSet,
+            room.SetComplete,
+            myHistory));
 
         await Clients.OthersInGroup(GroupKey(roomCode))
             .SendAsync("PlayerJoined", displayName);
+    }
+
+    public async Task LeaveRoom(string roomCode)
+    {
+        var userId = UserId();
+        if (userId is null) return;
+
+        var room = _roomService.GetRoom(roomCode);
+        if (room is null) return;
+
+        var displayName = room.Players.TryGetValue(userId, out var n) ? n : null;
+        bool wasHost = room.HostUserId == userId;
+
+        _roomService.Leave(userId, Context.ConnectionId);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupKey(roomCode));
+
+        if (displayName is not null && _roomService.GetRoom(roomCode) is { } updatedRoom)
+            await NotifyLeaveAsync(GroupKey(roomCode), updatedRoom, displayName, wasHost);
+
+        await Clients.Caller.SendAsync("LeftRoom");
     }
 
     public async Task StartRound(string roomCode)
@@ -80,9 +121,11 @@ public sealed class GameHub : Hub
         if (room.HostUserId != userId) { await SendError("Only the host can start a round."); return; }
         if (room.RoundActive) { await SendError("A round is already active."); return; }
         if (room.Players.Count < 1) { await SendError("Need at least one player."); return; }
+        if (room.SetComplete) { await SendError("Set complete. Start a new set first."); return; }
 
         var letter = (char)('A' + Random.Shared.Next(0, 26));
         var endsAt = DateTime.UtcNow.AddSeconds(ScoringRules.DefaultTimerSeconds);
+        var roundNumber = room.RoundsCompletedInSet + 1;
 
         room.CurrentLetter = letter;
         room.RoundEndsAt = endsAt;
@@ -92,9 +135,25 @@ public sealed class GameHub : Hub
         room.RoundTimerCts = new CancellationTokenSource();
 
         await Clients.Group(GroupKey(roomCode))
-            .SendAsync("RoundStarted", new RoundStartedMessage(letter, endsAt));
+            .SendAsync("RoundStarted", new RoundStartedMessage(letter, endsAt, roundNumber));
 
         _ = AutoScoreAfterDeadlineAsync(roomCode, room.RoundTimerCts.Token);
+    }
+
+    public async Task StartNewSet(string roomCode)
+    {
+        var userId = UserId();
+        var room = _roomService.GetRoom(roomCode);
+
+        if (room is null) { await SendError("Room not found."); return; }
+        if (room.HostUserId != userId) { await SendError("Only the host can start a new set."); return; }
+        if (room.RoundActive) { await SendError("A round is still active."); return; }
+        if (!room.SetComplete) { await SendError("Set is not yet complete."); return; }
+
+        room.RoundsCompletedInSet = 0;
+        room.PlayerSetHistory.Clear();
+
+        await Clients.Group(GroupKey(roomCode)).SendAsync("NewSetStarted");
     }
 
     public async Task SubmitAnswers(string roomCode, SubmitAnswersRequest answers)
@@ -122,6 +181,20 @@ public sealed class GameHub : Hub
 
     // ── Private helpers ────────────────────────────────────────────────────
 
+    private async Task NotifyLeaveAsync(
+        string groupKey, GameRoom room, string displayName, bool wasHost)
+    {
+        await Clients.Group(groupKey).SendAsync("PlayerLeft", displayName);
+
+        if (wasHost && room.Players.Count > 0)
+        {
+            var newHostId = room.Players.Keys.First();
+            room.HostUserId = newHostId;
+            var newHostName = room.Players[newHostId];
+            await Clients.Group(groupKey).SendAsync("HostChanged", newHostName);
+        }
+    }
+
     private async Task AutoScoreAfterDeadlineAsync(string roomCode, CancellationToken ct)
     {
         try
@@ -145,7 +218,6 @@ public sealed class GameHub : Hub
 
         var letter = room.CurrentLetter!.Value;
 
-        // Validate all submissions in parallel
         var scoringTasks = room.Submissions
             .ToDictionary(
                 kv => kv.Key,
@@ -159,7 +231,6 @@ public sealed class GameHub : Hub
             Total: kv.Value.Result.Sum(d => d.Points)
         )).ToList();
 
-        // Assign ranks
         var ranked = rawResults.OrderByDescending(r => r.Total).ToList();
         var playerResults = new List<PlayerRoundResult>();
 
@@ -170,8 +241,23 @@ public sealed class GameHub : Hub
             playerResults.Add(new PlayerRoundResult(playerName, entry.Total, i + 1, entry.Details));
         }
 
+        // Store per-player row for the set history
+        foreach (var entry in ranked)
+        {
+            var row = new CompletedRoundRow(letter, entry.Details);
+            room.PlayerSetHistory.AddOrUpdate(
+                entry.UserId,
+                _ => [row],
+                (_, existing) => { existing.Add(row); return existing; });
+        }
+
+        room.RoundsCompletedInSet++;
+
         await Clients.Group(GroupKey(roomCode))
-            .SendAsync("RoundResults", new RoundResultsMessage(playerResults));
+            .SendAsync("RoundResults", new RoundResultsMessage(
+                playerResults,
+                room.RoundsCompletedInSet,
+                room.SetComplete));
 
         await PersistMultiplayerRoundAsync(roomCode, ranked, letter);
     }
@@ -228,12 +314,18 @@ public sealed class GameHub : Hub
                 var entry = ranked[i];
                 var details = entry.Details;
                 int P(LocationType t) => details.FirstOrDefault(d => d.Type == t)?.Points ?? 0;
+                string? A(LocationType t) => details.FirstOrDefault(d => d.Type == t)?.Answer;
 
                 _db.RoundSubmissions.Add(new RoundSubmission
                 {
                     Id = Guid.NewGuid(),
                     RoundId = round.Id,
                     UserId = entry.UserId,
+                    CityAnswer = A(LocationType.City),
+                    VillageAnswer = A(LocationType.Village),
+                    CountryAnswer = A(LocationType.Country),
+                    RiverAnswer = A(LocationType.River),
+                    MountainAnswer = A(LocationType.Mountain),
                     CityPoints = P(LocationType.City),
                     VillagePoints = P(LocationType.Village),
                     CountryPoints = P(LocationType.Country),

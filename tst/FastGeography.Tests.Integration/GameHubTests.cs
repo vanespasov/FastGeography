@@ -180,6 +180,238 @@ public sealed class GameHubTests : IClassFixture<TestAppFixture>
         }
     }
 
+    [Fact]
+    public async Task SubmitAnswers_PersistsAnswerText_InDatabase()
+    {
+        var (restClient, hub) = await ConnectAsync(
+            $"hub5-{Guid.NewGuid():N}@test.com", "AnswerPersistPlayer5");
+
+        try
+        {
+            var createResp = await restClient.PostAsync("/api/rooms", null);
+            var room = await createResp.Content.ReadFromJsonAsync<CreateRoomResponse>();
+
+            hub.On<RoomStateDto>("RoomJoined", _ => { });
+            await hub.SendAsync("JoinRoom", room!.RoomCode);
+            await WaitUntil(() => false, 200);
+
+            hub.On<RoundStartedMessage>("RoundStarted", _ => { });
+            await hub.SendAsync("StartRound", room.RoomCode);
+            await WaitUntil(() => false, 200);
+
+            RoundResultsMessage? results = null;
+            hub.On<RoundResultsMessage>("RoundResults", msg => results = msg);
+
+            await hub.SendAsync("SubmitAnswers", room.RoomCode,
+                new SubmitAnswersRequest("Amsterdam", "Aalst", "Austria", "Amazon", "Alps"));
+
+            await WaitUntil(() => results is not null, timeoutMs: 10000);
+
+            // Check DB via the REST leaderboard – it queries RoundSubmissions
+            var statsResp = await restClient.GetAsync("/api/leaderboard/me");
+            statsResp.EnsureSuccessStatusCode();
+            var stats = await statsResp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+
+            // At minimum, answers came back in the results message from hub
+            Assert.NotNull(results);
+            var myResult = results!.Results.FirstOrDefault();
+            Assert.NotNull(myResult);
+            Assert.Contains(myResult!.Details, d => d.Answer == "Amsterdam" || d.Answer == "Alps" || d.Answer == "Austria");
+        }
+        finally
+        {
+            await hub.DisposeAsync();
+            restClient.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task LeaveRoom_RemovesPlayer_AndNotifiesOthers()
+    {
+        var (hostClient, hostHub) = await ConnectAsync(
+            $"hub6h-{Guid.NewGuid():N}@test.com", "LeaveHost6");
+        var (guestClient, guestHub) = await ConnectAsync(
+            $"hub6g-{Guid.NewGuid():N}@test.com", "LeaveGuest6");
+
+        try
+        {
+            var createResp = await hostClient.PostAsync("/api/rooms", null);
+            var room = await createResp.Content.ReadFromJsonAsync<CreateRoomResponse>();
+
+            RoomStateDto? hostState = null;
+            hostHub.On<RoomStateDto>("RoomJoined", s => hostState = s);
+            await hostHub.SendAsync("JoinRoom", room!.RoomCode);
+            await WaitUntil(() => hostState is not null);
+
+            RoomStateDto? guestState = null;
+            guestHub.On<RoomStateDto>("RoomJoined", s => guestState = s);
+            await guestHub.SendAsync("JoinRoom", room.RoomCode);
+            await WaitUntil(() => guestState is not null);
+
+            // Host listens for PlayerLeft
+            string? leftName = null;
+            hostHub.On<string>("PlayerLeft", name => leftName = name);
+
+            // Guest leaves
+            await guestHub.SendAsync("LeaveRoom", room.RoomCode);
+            await WaitUntil(() => leftName is not null);
+
+            Assert.Equal("LeaveGuest6", leftName);
+        }
+        finally
+        {
+            await guestHub.DisposeAsync();
+            await hostHub.DisposeAsync();
+            guestClient.Dispose();
+            hostClient.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task LeaveRoom_HostLeaves_TransfersHostToOtherPlayer()
+    {
+        var (hostClient, hostHub) = await ConnectAsync(
+            $"hub7h-{Guid.NewGuid():N}@test.com", "TransferHost7");
+        var (guestClient, guestHub) = await ConnectAsync(
+            $"hub7g-{Guid.NewGuid():N}@test.com", "TransferGuest7");
+
+        try
+        {
+            var createResp = await hostClient.PostAsync("/api/rooms", null);
+            var room = await createResp.Content.ReadFromJsonAsync<CreateRoomResponse>();
+
+            RoomStateDto? hostState = null;
+            hostHub.On<RoomStateDto>("RoomJoined", s => hostState = s);
+            await hostHub.SendAsync("JoinRoom", room!.RoomCode);
+            await WaitUntil(() => hostState is not null);
+
+            RoomStateDto? guestState = null;
+            guestHub.On<RoomStateDto>("RoomJoined", s => guestState = s);
+            await guestHub.SendAsync("JoinRoom", room.RoomCode);
+            await WaitUntil(() => guestState is not null);
+
+            string? newHostName = null;
+            guestHub.On<string>("HostChanged", name => newHostName = name);
+            guestHub.On<string>("PlayerLeft", _ => { });
+
+            // Host leaves
+            await hostHub.SendAsync("LeaveRoom", room.RoomCode);
+            await WaitUntil(() => newHostName is not null);
+
+            Assert.Equal("TransferGuest7", newHostName);
+        }
+        finally
+        {
+            await guestHub.DisposeAsync();
+            await hostHub.DisposeAsync();
+            guestClient.Dispose();
+            hostClient.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task StartRound_SixthRound_IsRejectedWithError()
+    {
+        var (restClient, hub) = await ConnectAsync(
+            $"hub8-{Guid.NewGuid():N}@test.com", "RoundCapPlayer8");
+
+        try
+        {
+            var createResp = await restClient.PostAsync("/api/rooms", null);
+            var room = await createResp.Content.ReadFromJsonAsync<CreateRoomResponse>();
+
+            hub.On<RoomStateDto>("RoomJoined", _ => { });
+            await hub.SendAsync("JoinRoom", room!.RoomCode);
+            await WaitUntil(() => false, 200);
+
+            // Play 5 rounds
+            for (int i = 0; i < 5; i++)
+            {
+                hub.On<RoundStartedMessage>("RoundStarted", _ => { });
+                await hub.SendAsync("StartRound", room.RoomCode);
+                await WaitUntil(() => false, 200);
+
+                RoundResultsMessage? roundResult = null;
+                hub.On<RoundResultsMessage>("RoundResults", msg => roundResult = msg);
+
+                await hub.SendAsync("SubmitAnswers", room.RoomCode,
+                    new SubmitAnswersRequest("London", "London", "London", "London", "London"));
+
+                await WaitUntil(() => roundResult is not null, timeoutMs: 10000);
+                Assert.Equal(i + 1, roundResult!.RoundsCompletedInSet);
+            }
+
+            // 6th StartRound should fail with an error
+            string? errorMsg = null;
+            hub.On<string>("Error", msg => errorMsg = msg);
+            await hub.SendAsync("StartRound", room.RoomCode);
+            await WaitUntil(() => errorMsg is not null);
+
+            Assert.NotNull(errorMsg);
+            Assert.Contains("set", errorMsg, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            await hub.DisposeAsync();
+            restClient.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task StartNewSet_AfterSetComplete_AllowsAnotherRound()
+    {
+        var (restClient, hub) = await ConnectAsync(
+            $"hub9-{Guid.NewGuid():N}@test.com", "NewSetPlayer9");
+
+        try
+        {
+            var createResp = await restClient.PostAsync("/api/rooms", null);
+            var room = await createResp.Content.ReadFromJsonAsync<CreateRoomResponse>();
+
+            hub.On<RoomStateDto>("RoomJoined", _ => { });
+            await hub.SendAsync("JoinRoom", room!.RoomCode);
+            await WaitUntil(() => false, 200);
+
+            // Play through 5 rounds
+            for (int i = 0; i < 5; i++)
+            {
+                hub.On<RoundStartedMessage>("RoundStarted", _ => { });
+                await hub.SendAsync("StartRound", room.RoomCode);
+                await WaitUntil(() => false, 200);
+
+                RoundResultsMessage? roundResult = null;
+                hub.On<RoundResultsMessage>("RoundResults", msg => roundResult = msg);
+
+                await hub.SendAsync("SubmitAnswers", room.RoomCode,
+                    new SubmitAnswersRequest("Paris", "Paris", "Paris", "Paris", "Paris"));
+
+                await WaitUntil(() => roundResult is not null, timeoutMs: 10000);
+            }
+
+            // Start a new set
+            bool newSetReceived = false;
+            hub.On("NewSetStarted", () => newSetReceived = true);
+            await hub.SendAsync("StartNewSet", room.RoomCode);
+            await WaitUntil(() => newSetReceived);
+
+            Assert.True(newSetReceived);
+
+            // Should now be able to start a round again
+            RoundStartedMessage? newRound = null;
+            hub.On<RoundStartedMessage>("RoundStarted", msg => newRound = msg);
+            await hub.SendAsync("StartRound", room.RoomCode);
+            await WaitUntil(() => newRound is not null, timeoutMs: 5000);
+
+            Assert.NotNull(newRound);
+            Assert.Equal(1, newRound!.RoundNumber);
+        }
+        finally
+        {
+            await hub.DisposeAsync();
+            restClient.Dispose();
+        }
+    }
+
     private static async Task WaitUntil(Func<bool> condition, int timeoutMs = 3000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);

@@ -24,6 +24,9 @@ public static class ScoringRules
     /// <summary>Maximum allowed length for a location answer to guard against abuse.</summary>
     public const int MaxAnswerLength = 100;
 
+    /// <summary>Number of rounds that form one multiplayer set.</summary>
+    public const int SetSize = 5;
+
     /// <summary>Score threshold above which the achievement banner is shown.</summary>
     public const int AchievementThreshold = 0;
 
