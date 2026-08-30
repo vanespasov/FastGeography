@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 
 using FastGeography.Server.Data;
+using FastGeography.Server.Data.Seed;
 using FastGeography.Server.Hubs;
 using FastGeography.Server.Options;
 using FastGeography.Server.Services;
@@ -167,6 +168,8 @@ public partial class Program
                     await db.Database.MigrateAsync();
                 else
                     await db.Database.EnsureCreatedAsync();
+
+                await ToponymSeeder.SeedAsync(db);
             }
             catch (Exception ex)
             {

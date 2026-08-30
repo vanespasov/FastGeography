@@ -1,5 +1,6 @@
 namespace FastGeography.IntegrationTests;
 
+using FastGeography.IntegrationTests.Support;
 using FastGeography.Server.Data;
 using FastGeography.Server.Data.Entities;
 using FastGeography.Server.Options;
@@ -275,36 +276,5 @@ public sealed class CatalogGeocodingServiceTests : IDisposable
         Assert.Equal("mk", toponym.LanguageCode);
     }
 
-    // ── Spy ────────────────────────────────────────────────────────────────
-
-    private sealed class SpyGeocodingService : IGeocodingService
-    {
-        private GeocodeResult _next = new() { Points = ScoringRules.InvalidPoints };
-
-        public int Calls { get; set; }
-
-        public void Reset(bool invalidByDefault = true, int? points = null, string? coordinates = null)
-        {
-            Calls = 0;
-            _next = new GeocodeResult
-            {
-                Points = points ?? (invalidByDefault ? ScoringRules.InvalidPoints : ScoringRules.ValidPoints),
-                Coordinates = coordinates
-            };
-        }
-
-        public Task<GeocodeResult> ValidateAsync(
-            string location, LocationType locationType,
-            GameLanguage language = GameLanguage.En,
-            CancellationToken cancellationToken = default)
-        {
-            Calls++;
-            return Task.FromResult(new GeocodeResult
-            {
-                LocationType = locationType,
-                Points = _next.Points,
-                Coordinates = _next.Coordinates
-            });
-        }
-    }
+    // ── Spy is now in Support/SpyGeocodingService.cs ───────────────────────
 }
