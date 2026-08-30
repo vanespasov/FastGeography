@@ -63,6 +63,23 @@ public class AuthController : ControllerBase
         var user = await _db.Users.FindAsync(userId);
         if (user is null) return Unauthorized();
 
-        return Ok(new UserInfoResponse(user.Id, user.Email ?? string.Empty, user.DisplayName));
+        return Ok(new UserInfoResponse(user.Id, user.Email ?? string.Empty, user.DisplayName, user.PreferredLanguage));
+    }
+
+    [Authorize]
+    [HttpPatch("language")]
+    public async Task<IActionResult> SetLanguage([FromBody] SetLanguageRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null) return Unauthorized();
+
+        var code = GameLanguageExtensions.Parse(request.LanguageCode).ToCode();
+        user.PreferredLanguage = code;
+        await _db.SaveChangesAsync();
+
+        return Ok();
     }
 }

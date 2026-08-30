@@ -18,6 +18,13 @@
         <div class="card-body">
             <h5 class="card-title">Create a New Room</h5>
             <p class="card-text text-muted">Get a join code and share it with friends.</p>
+            <div class="mb-3">
+                <label class="form-label" for="langSelect">Game language</label>
+                <select id="langSelect" class="form-select" @bind="_createLang">
+                    <option value="en">English (Latin A–Z)</option>
+                    <option value="mk">Македонски / Macedonian (Cyrillic А–Ш)</option>
+                </select>
+            </div>
             <button class="btn btn-success" @onclick="CreateRoom" disabled="@_busy">
                 @(_busy ? "Creating…" : "Create Room")
             </button>
@@ -40,6 +47,7 @@
 
 @code {
     private string _joinCode = string.Empty;
+    private string _createLang = "en";
     private bool _busy;
     private string? _error;
 
@@ -47,7 +55,7 @@
     {
         _busy = true;
         _error = null;
-        var resp = await Http.PostAsync("api/rooms", null);
+        var resp = await Http.PostAsync($"api/rooms?lang={_createLang}", null);
         _busy = false;
 
         if (resp.IsSuccessStatusCode)

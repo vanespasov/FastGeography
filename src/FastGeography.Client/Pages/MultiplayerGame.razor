@@ -17,6 +17,10 @@
     <div class="d-flex align-items-center flex-wrap gap-3 mb-3">
         <h4 class="mb-0">Room: <code class="user-select-all">@RoomCode</code></h4>
 
+        <span class="badge bg-info text-dark" title="Game language">
+            @(_languageCode == "mk" ? "Македонски" : "English")
+        </span>
+
         @if (_roundsCompleted > 0 || _roundActive)
         {
             <span class="badge bg-secondary fs-6">
@@ -207,6 +211,7 @@
     // Personal casual-play table
     private readonly List<CompletedRoundRow> _myRows = [];
     private string _myDisplayName = string.Empty;
+    private string _languageCode = "en";
     private int _mySetPoints => _myRows.Sum(r => r.Details.Sum(d => d.Points));
 
     protected override async Task OnInitializedAsync()
@@ -230,6 +235,7 @@
             _roundActive = state.RoundActive;
             _roundsCompleted = state.RoundsCompletedInSet;
             _setComplete = state.SetComplete;
+            _languageCode = state.LanguageCode;
             _myRows.Clear();
             _myRows.AddRange(state.MyCompletedRounds);
             _isHost = !string.IsNullOrEmpty(_myDisplayName) && state.HostName == _myDisplayName;
@@ -362,7 +368,7 @@
     private async Task SubmitAnswers()
     {
         if (_hub is null || !_roundActive || _submitted) return;
-        var req = new SubmitAnswersRequest(_city, _village, _country, _river, _mountain);
+        var req = new SubmitAnswersRequest(_city, _village, _country, _river, _mountain, _languageCode);
         await _hub.SendAsync("SubmitAnswers", RoomCode, req);
     }
 

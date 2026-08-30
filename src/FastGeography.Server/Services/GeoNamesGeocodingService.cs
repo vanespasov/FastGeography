@@ -39,6 +39,7 @@ public sealed class GeoNamesGeocodingService : IGeocodingService
     public async Task<GeocodeResult> ValidateAsync(
         string location,
         LocationType locationType,
+        GameLanguage language = GameLanguage.En,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(_options.GeoNames.Username))
@@ -49,15 +50,16 @@ public sealed class GeoNamesGeocodingService : IGeocodingService
             return Invalid(locationType);
         }
 
-        var cacheKey = $"geocode:geonames:{location.Trim().ToLowerInvariant()}:{locationType}";
+        var langCode = language.ToCode();
+        var cacheKey = $"geocode:geonames:{langCode}:{location.Trim().ToLowerInvariant()}:{locationType}";
 
         if (_cache.TryGetValue(cacheKey, out GeocodeResult? cached) && cached is not null)
         {
-            _logger.LogDebug("GeoNames cache hit for {Location}/{LocationType}", location, locationType);
+            _logger.LogDebug("GeoNames cache hit for {Location}/{LocationType}/{Language}", location, locationType, langCode);
             return cached;
         }
 
-        var result = await CallGeoNamesAsync(location, locationType, cancellationToken);
+        var result = await CallGeoNamesAsync(location, locationType, langCode, cancellationToken);
 
         _cache.Set(cacheKey, result, CacheTtl);
         return result;
@@ -66,12 +68,15 @@ public sealed class GeoNamesGeocodingService : IGeocodingService
     private async Task<GeocodeResult> CallGeoNamesAsync(
         string location,
         LocationType locationType,
+        string langCode,
         CancellationToken cancellationToken)
     {
         try
         {
             var client = _httpClientFactory.CreateClient("geonames");
-            var url = $"searchJSON?q={Uri.EscapeDataString(location)}&maxRows=5&username={Uri.EscapeDataString(_options.GeoNames.Username)}";
+            var url = $"searchJSON?q={Uri.EscapeDataString(location)}&maxRows=5" +
+                      $"&username={Uri.EscapeDataString(_options.GeoNames.Username)}" +
+                      $"&lang={Uri.EscapeDataString(langCode)}";
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(RequestTimeout);

@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject CookieAuthenticationStateProvider Auth
 @inject ILogger<RankedGame> Logger
+@inject IJSRuntime JS
 
 <PageTitle>Ranked Play – FastGeography</PageTitle>
 
@@ -100,6 +101,7 @@
     private Countdown _countdown = null!;
     private Guid? _roundId;
     private char _letter;
+    private string _languageCode = "en";
     private DateTime _endsAt;
     private bool _roundActive;
     private bool _checking;
@@ -113,7 +115,9 @@
         _error = null;
         _result = null;
 
-        var response = await Http.PostAsync("api/games/solo/start", null);
+        _languageCode = await JS.InvokeAsync<string?>("localStorage.getItem", "fg_lang") ?? "en";
+
+        var response = await Http.PostAsync($"api/games/solo/start?lang={_languageCode}", null);
         if (!response.IsSuccessStatusCode)
         {
             _error = "Failed to start round. Please try again.";
@@ -125,6 +129,7 @@
 
         _roundId = start.RoundId;
         _letter = start.Letter;
+        _languageCode = start.LanguageCode;
         _endsAt = start.EndsAt;
         _city = _village = _country = _river = _mountain = string.Empty;
         _roundActive = true;
@@ -146,7 +151,7 @@
 
         try
         {
-            var req = new SubmitAnswersRequest(_city, _village, _country, _river, _mountain);
+            var req = new SubmitAnswersRequest(_city, _village, _country, _river, _mountain, _languageCode);
             var resp = await Http.PostAsJsonAsync($"api/games/solo/{_roundId}/submit", req);
 
             if (resp.IsSuccessStatusCode)

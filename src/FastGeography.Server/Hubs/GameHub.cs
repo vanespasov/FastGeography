@@ -86,7 +86,8 @@ public sealed class GameHub : Hub
             room.RoundActive,
             room.RoundsCompletedInSet,
             room.SetComplete,
-            myHistory));
+            myHistory,
+            room.LanguageCode));
 
         await Clients.OthersInGroup(GroupKey(roomCode))
             .SendAsync("PlayerJoined", displayName);
@@ -123,7 +124,8 @@ public sealed class GameHub : Hub
         if (room.Players.Count < 1) { await SendError("Need at least one player."); return; }
         if (room.SetComplete) { await SendError("Set complete. Start a new set first."); return; }
 
-        var letter = (char)('A' + Random.Shared.Next(0, 26));
+        var language = GameLanguageExtensions.Parse(room.LanguageCode);
+        var letter = Alphabet.RandomLetter(language);
         var endsAt = DateTime.UtcNow.AddSeconds(ScoringRules.DefaultTimerSeconds);
         var roundNumber = room.RoundsCompletedInSet + 1;
 
@@ -217,11 +219,12 @@ public sealed class GameHub : Hub
         room.RoundTimerCts?.Cancel();
 
         var letter = room.CurrentLetter!.Value;
+        var language = GameLanguageExtensions.Parse(room.LanguageCode);
 
         var scoringTasks = room.Submissions
             .ToDictionary(
                 kv => kv.Key,
-                kv => ScoreSubmissionAsync(letter, (SubmitAnswersRequest)kv.Value));
+                kv => ScoreSubmissionAsync(letter, language, (SubmitAnswersRequest)kv.Value));
 
         await Task.WhenAll(scoringTasks.Values);
 
@@ -259,19 +262,19 @@ public sealed class GameHub : Hub
                 room.RoundsCompletedInSet,
                 room.SetComplete));
 
-        await PersistMultiplayerRoundAsync(roomCode, ranked, letter);
+        await PersistMultiplayerRoundAsync(roomCode, ranked, letter, room.LanguageCode);
     }
 
     private async Task<List<LocationResult>> ScoreSubmissionAsync(
-        char letter, SubmitAnswersRequest req)
+        char letter, GameLanguage language, SubmitAnswersRequest req)
     {
         var tasks = new[]
         {
-            ValidateOneAsync(LocationType.City,     req.City,     letter),
-            ValidateOneAsync(LocationType.Village,  req.Village,  letter),
-            ValidateOneAsync(LocationType.Country,  req.Country,  letter),
-            ValidateOneAsync(LocationType.River,    req.River,    letter),
-            ValidateOneAsync(LocationType.Mountain, req.Mountain, letter),
+            ValidateOneAsync(LocationType.City,     req.City,     letter, language),
+            ValidateOneAsync(LocationType.Village,  req.Village,  letter, language),
+            ValidateOneAsync(LocationType.Country,  req.Country,  letter, language),
+            ValidateOneAsync(LocationType.River,    req.River,    letter, language),
+            ValidateOneAsync(LocationType.Mountain, req.Mountain, letter, language),
         };
 
         await Task.WhenAll(tasks);
@@ -279,22 +282,23 @@ public sealed class GameHub : Hub
     }
 
     private async Task<LocationResult> ValidateOneAsync(
-        LocationType type, string? answer, char letter)
+        LocationType type, string? answer, char letter, GameLanguage language)
     {
         if (string.IsNullOrWhiteSpace(answer))
             return new LocationResult(type, answer, ScoringRules.EmptyPoints, null);
 
-        if (!answer.StartsWith(letter.ToString(), StringComparison.OrdinalIgnoreCase))
+        if (!Alphabet.StartsWithLetter(answer, letter))
             return new LocationResult(type, answer, ScoringRules.WrongLetterPoints, null);
 
-        var result = await _geocodingService.ValidateAsync(answer, type);
+        var result = await _geocodingService.ValidateAsync(answer, type, language);
         return new LocationResult(type, answer, result.Points, result.Coordinates);
     }
 
     private async Task PersistMultiplayerRoundAsync(
         string roomCode,
         List<(string UserId, List<LocationResult> Details, int Total)> ranked,
-        char letter)
+        char letter,
+        string languageCode)
     {
         try
         {
@@ -303,6 +307,7 @@ public sealed class GameHub : Hub
                 Id = Guid.NewGuid(),
                 Mode = GameMode.Multiplayer,
                 Letter = letter,
+                LanguageCode = languageCode,
                 StartedAt = DateTime.UtcNow - TimeSpan.FromSeconds(ScoringRules.DefaultTimerSeconds),
                 EndsAt = DateTime.UtcNow,
                 RoomCode = roomCode

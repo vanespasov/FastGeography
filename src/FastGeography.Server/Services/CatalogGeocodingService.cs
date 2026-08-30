@@ -16,7 +16,7 @@ using Microsoft.Extensions.Options;
 /// the database so repeated lookups skip the external API entirely.
 ///
 /// Lookup order:
-///   1. <c>Toponyms</c> table (exact match on normalised name + category).
+///   1. <c>Toponyms</c> table (exact match on normalised name + category + language).
 ///   2. Active geocoding provider.  On a valid result the row is inserted for future calls.
 ///   3. Invalid provider responses are never persisted.
 /// </summary>
@@ -42,9 +42,11 @@ public sealed class CatalogGeocodingService : IGeocodingService
     public async Task<GeocodeResult> ValidateAsync(
         string location,
         LocationType locationType,
+        GameLanguage language = GameLanguage.En,
         CancellationToken cancellationToken = default)
     {
         var key = Normalize(location);
+        var langCode = language.ToCode();
 
         // --- 1. Catalog lookup (own scope so parallel WhenAll calls don't share a context) ---
         await using (var readScope = _scopeFactory.CreateAsyncScope())
@@ -53,13 +55,16 @@ public sealed class CatalogGeocodingService : IGeocodingService
             var entry = await db.Toponyms
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
-                    t => t.NormalizedName == key && t.Category == locationType,
+                    t => t.NormalizedName == key
+                         && t.Category == locationType
+                         && t.LanguageCode == langCode,
                     cancellationToken);
 
             if (entry is not null)
             {
                 _logger.LogDebug(
-                    "Catalog hit for {Location}/{LocationType}", location, locationType);
+                    "Catalog hit for {Location}/{LocationType}/{Language}",
+                    location, locationType, langCode);
 
                 return new GeocodeResult
                 {
@@ -71,12 +76,12 @@ public sealed class CatalogGeocodingService : IGeocodingService
         }
 
         // --- 2. Fall back to the configured geocoding provider ---
-        var result = await _inner.ValidateAsync(location, locationType, cancellationToken);
+        var result = await _inner.ValidateAsync(location, locationType, language, cancellationToken);
 
         // --- 3. Persist verified results for future calls ---
         if (result.Points == ScoringRules.ValidPoints && result.Coordinates is not null)
         {
-            await TryPersistAsync(key, location.Trim(), locationType, result.Coordinates, cancellationToken);
+            await TryPersistAsync(key, location.Trim(), locationType, langCode, result.Coordinates, cancellationToken);
         }
 
         return result;
@@ -88,6 +93,7 @@ public sealed class CatalogGeocodingService : IGeocodingService
         string normalizedName,
         string displayName,
         LocationType category,
+        string languageCode,
         string coordinates,
         CancellationToken cancellationToken)
     {
@@ -110,6 +116,7 @@ public sealed class CatalogGeocodingService : IGeocodingService
                 NormalizedName = normalizedName,
                 DisplayName = displayName,
                 Category = category,
+                LanguageCode = languageCode,
                 Latitude = lat,
                 Longitude = lon,
                 Provider = _providerName,
@@ -119,16 +126,16 @@ public sealed class CatalogGeocodingService : IGeocodingService
             await db.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Persisted new verified toponym '{DisplayName}' ({Category}) at {Lat},{Lon}",
-                displayName, category, lat, lon);
+                "Persisted new verified toponym '{DisplayName}' ({Category}/{Language}) at {Lat},{Lon}",
+                displayName, category, languageCode, lat, lon);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
             // Two concurrent validations for the same key both missed the catalog and
             // both tried to insert.  The second one loses — that is fine.
             _logger.LogDebug(
-                "Toponym '{Name}'/{Category} already inserted by a concurrent request",
-                displayName, category);
+                "Toponym '{Name}'/{Category}/{Language} already inserted by a concurrent request",
+                displayName, category, languageCode);
         }
     }
 

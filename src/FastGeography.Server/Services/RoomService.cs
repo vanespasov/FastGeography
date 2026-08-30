@@ -22,6 +22,9 @@ public sealed class GameRoom
     public DateTime? RoundEndsAt { get; set; }
     public bool RoundActive { get; set; }
 
+    /// <summary>ISO 639-1 game language code ("en" or "mk") set by the host when the room is created.</summary>
+    public string LanguageCode { get; set; } = "en";
+
     /// <summary>Map: userId → submitted answers once submitted this round.</summary>
     public ConcurrentDictionary<string, object> Submissions { get; } = new();
 
@@ -42,7 +45,7 @@ public sealed class GameRoom
 
 public interface IRoomService
 {
-    GameRoom CreateRoom(string hostUserId, string hostName);
+    GameRoom CreateRoom(string hostUserId, string hostName, GameLanguage language = GameLanguage.En);
     GameRoom? GetRoom(string code);
     bool TryJoin(string code, string userId, string displayName, string connectionId);
     void Leave(string userId, string connectionId);
@@ -57,7 +60,7 @@ public sealed class RoomService : IRoomService
     private static readonly TimeSpan RoomTtl = TimeSpan.FromHours(2);
     private const string Chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-    public GameRoom CreateRoom(string hostUserId, string hostName)
+    public GameRoom CreateRoom(string hostUserId, string hostName, GameLanguage language = GameLanguage.En)
     {
         Cleanup();
         var code = GenerateCode();
@@ -65,6 +68,7 @@ public sealed class RoomService : IRoomService
         {
             Code = code,
             HostUserId = hostUserId,
+            LanguageCode = language.ToCode(),
             LastActivity = DateTime.UtcNow
         };
         room.Players[hostUserId] = hostName;

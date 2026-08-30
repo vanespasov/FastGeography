@@ -12,12 +12,16 @@ internal sealed class FakeGeocodingService : IGeocodingService
 {
     private static readonly HashSet<string> KnownPlaces = new(StringComparer.OrdinalIgnoreCase)
     {
-        "london", "paris", "berlin", "sofia", "tokyo"
+        // English / Latin
+        "london", "paris", "berlin", "sofia", "tokyo",
+        // Macedonian / Cyrillic
+        "скопје", "охрид", "битола", "македонија", "вардар"
     };
 
     public Task<GeocodeResult> ValidateAsync(
         string location,
         LocationType locationType,
+        GameLanguage language = GameLanguage.En,
         CancellationToken cancellationToken = default)
     {
         var known = KnownPlaces.Contains(location);

@@ -1,5 +1,7 @@
 ﻿@inject CookieAuthenticationStateProvider Auth
 @inject NavigationManager Nav
+@inject HttpClient Http
+@inject IJSRuntime JS
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -33,6 +35,23 @@
             </NavLink>
         </div>
         <hr class="border-secondary my-1" />
+
+        @* ── Language picker ── *@
+        <div class="nav-item px-3 py-1">
+            <div class="d-flex align-items-center gap-2">
+                <span class="oi oi-globe" aria-hidden="true" style="color:var(--bs-nav-link-color,rgba(255,255,255,.55))"></span>
+                <select class="form-select form-select-sm bg-transparent text-white border-secondary"
+                        style="width:auto"
+                        value="@_currentLang"
+                        @onchange="OnLanguageChanged"
+                        aria-label="Choose game language">
+                    <option value="en">English</option>
+                    <option value="mk">Македонски</option>
+                </select>
+            </div>
+        </div>
+        <hr class="border-secondary my-1" />
+
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item px-3">
@@ -66,8 +85,40 @@
 @code {
     private bool collapseNavMenu = true;
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private string _currentLang = "en";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Prefer the signed-in user's server-persisted preference; fall back to localStorage.
+        var user = Auth.CurrentUser;
+        if (user is not null)
+        {
+            _currentLang = user.PreferredLanguage;
+        }
+        else
+        {
+            _currentLang = await JS.InvokeAsync<string?>("localStorage.getItem", "fg_lang") ?? "en";
+        }
+        // Keep localStorage in sync.
+        await JS.InvokeVoidAsync("localStorage.setItem", "fg_lang", _currentLang);
+    }
 
     private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+
+    private async Task OnLanguageChanged(ChangeEventArgs e)
+    {
+        var lang = e.Value?.ToString() ?? "en";
+        _currentLang = lang;
+
+        // Persist to localStorage so every page can read it synchronously.
+        await JS.InvokeVoidAsync("localStorage.setItem", "fg_lang", lang);
+
+        // Persist to the server when signed in.
+        if (Auth.CurrentUser is not null)
+        {
+            await Http.PatchAsJsonAsync("api/auth/language", new SetLanguageRequest(lang));
+        }
+    }
 
     private async Task Logout()
     {

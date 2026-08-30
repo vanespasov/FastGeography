@@ -5,6 +5,7 @@
 @using FastGeography.Shared
 @inject HttpClient HttpClient
 @inject ILogger<GameTable> Logger
+@inject IJSRuntime JS
 
 <div class="game-container">
     <div class="game-header">
@@ -96,11 +97,18 @@
     private bool isStarted = false;
     private bool isChecking = false;
     private Countdown countdown = null!;
+    private string _langCode = "en";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _langCode = await JS.InvokeAsync<string?>("localStorage.getItem", "fg_lang") ?? "en";
+    }
 
     private void StartNewGame()
     {
         isStarted = true;
-        var letter = (char)('A' + Random.Shared.Next(0, 26));
+        var language = FastGeography.Shared.GameLanguageExtensions.Parse(_langCode);
+        var letter = Alphabet.RandomLetter(language);
         var key = Guid.NewGuid();
 
         games.Add(key, new Game
@@ -172,13 +180,13 @@
         if (location is null || string.IsNullOrWhiteSpace(location.Answer))
             return ScoringRules.EmptyPoints;
 
-        if (!location.Answer.StartsWith(gameLetter.ToString(), StringComparison.OrdinalIgnoreCase))
+        if (!Alphabet.StartsWithLetter(location.Answer, gameLetter))
             return ScoringRules.WrongLetterPoints;
 
         try
         {
             var result = await HttpClient.GetFromJsonAsync<GeocodeResult>(
-                $"geocode/{Uri.EscapeDataString(location.Answer)}/{location.LocationType}");
+                $"geocode/{Uri.EscapeDataString(location.Answer)}/{location.LocationType}?lang={_langCode}");
 
             if (result is null)
                 return ScoringRules.InvalidPoints;

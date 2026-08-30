@@ -50,10 +50,12 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasKey(t => t.Id);
             e.Property(t => t.NormalizedName).HasMaxLength(200);
             e.Property(t => t.DisplayName).HasMaxLength(200);
+            e.Property(t => t.LanguageCode).HasMaxLength(8).HasDefaultValue("en");
             e.Property(t => t.Provider).HasMaxLength(50);
-            // (NormalizedName, Category) is the natural lookup key and must be unique
-            // so concurrent inserts for the same verified answer don't create duplicates.
-            e.HasIndex(t => new { t.NormalizedName, t.Category }).IsUnique();
+            // (NormalizedName, Category, LanguageCode) is the natural lookup key and must be
+            // unique so concurrent inserts for the same verified answer + language don't create
+            // duplicates.
+            e.HasIndex(t => new { t.NormalizedName, t.Category, t.LanguageCode }).IsUnique();
         });
     }
 }

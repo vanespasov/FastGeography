@@ -13,5 +13,8 @@ public sealed class GameRound
     /// <summary>Short alphanumeric code for multiplayer rooms; null for solo rounds.</summary>
     public string? RoomCode { get; set; }
 
+    /// <summary>ISO 639-1 game language code ("en" or "mk") for the alphabet used in this round.</summary>
+    public string LanguageCode { get; set; } = "en";
+
     public List<RoundSubmission> Submissions { get; set; } = [];
 }

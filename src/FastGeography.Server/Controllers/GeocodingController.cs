@@ -30,15 +30,18 @@ public class GeocodingController : ControllerBase
     public async Task<IActionResult> GetLocationType(
         string location,
         LocationType locationType,
+        [FromQuery] string? lang,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(location) || location.Length > ScoringRules.MaxAnswerLength)
             return BadRequest("Location must be between 1 and 100 characters.");
 
-        _logger.LogInformation(
-            "Validating answer '{Location}' for type {LocationType}", location, locationType);
+        var language = GameLanguageExtensions.Parse(lang);
 
-        var result = await _geocoding.ValidateAsync(location, locationType, cancellationToken);
+        _logger.LogInformation(
+            "Validating answer '{Location}' for type {LocationType} / language {Language}", location, locationType, language);
+
+        var result = await _geocoding.ValidateAsync(location, locationType, language, cancellationToken);
         return Ok(result);
     }
 }

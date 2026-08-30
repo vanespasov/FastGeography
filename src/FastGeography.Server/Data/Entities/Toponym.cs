@@ -5,7 +5,7 @@ using FastGeography.Shared;
 /// <summary>
 /// A geography toponym that has been verified by a maps provider and acts as the
 /// server-side cache of correct answers.  Populated on first confirmed hit from
-/// Bing Maps so subsequent validations skip the external API entirely.
+/// the active geocoding provider so subsequent validations skip the external API entirely.
 /// </summary>
 public sealed class Toponym
 {
@@ -21,11 +21,14 @@ public sealed class Toponym
 
     public LocationType Category { get; set; }
 
+    /// <summary>ISO 639-1 game language code ("en" or "mk") used when this entry was verified.</summary>
+    public string LanguageCode { get; set; } = "en";
+
     public double Latitude { get; set; }
     public double Longitude { get; set; }
 
-    /// <summary>Name of the maps provider that verified this entry (e.g. "Bing").</summary>
-    public string Provider { get; set; } = "Bing";
+    /// <summary>Name of the maps provider that verified this entry (e.g. "Nominatim").</summary>
+    public string Provider { get; set; } = string.Empty;
 
     /// <summary>UTC timestamp when the provider confirmed the toponym.</summary>
     public DateTime VerifiedAtUtc { get; set; }

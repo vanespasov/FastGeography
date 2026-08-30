@@ -192,7 +192,8 @@ public sealed class CatalogGeocodingServiceTests : IDisposable
     // ── Helpers ────────────────────────────────────────────────────────────
 
     private async Task SeedToponymAsync(
-        string normalized, string display, LocationType category, double lat, double lon)
+        string normalized, string display, LocationType category, double lat, double lon,
+        string languageCode = "en")
     {
         await using var scope = _provider.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -202,6 +203,7 @@ public sealed class CatalogGeocodingServiceTests : IDisposable
             NormalizedName = normalized,
             DisplayName = display,
             Category = category,
+            LanguageCode = languageCode,
             Latitude = lat,
             Longitude = lon,
             Provider = "Bing",
@@ -210,20 +212,67 @@ public sealed class CatalogGeocodingServiceTests : IDisposable
         await db.SaveChangesAsync();
     }
 
-    private async Task<Toponym?> FindToponymAsync(string normalized, LocationType category)
+    private async Task<Toponym?> FindToponymAsync(string normalized, LocationType category,
+        string languageCode = "en")
     {
         await using var scope = _provider.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         return await db.Toponyms
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.NormalizedName == normalized && t.Category == category);
+            .FirstOrDefaultAsync(t => t.NormalizedName == normalized
+                                      && t.Category == category
+                                      && t.LanguageCode == languageCode);
     }
 
-    private async Task<int> CountToponymsAsync(string normalized)
+    private async Task<int> CountToponymsAsync(string normalized, string? languageCode = null)
     {
         await using var scope = _provider.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        return await db.Toponyms.CountAsync(t => t.NormalizedName == normalized);
+        return await db.Toponyms.CountAsync(t => t.NormalizedName == normalized
+                                                 && (languageCode == null || t.LanguageCode == languageCode));
+    }
+
+    // ── Language isolation ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SameNameSameCategory_DifferentLanguage_AreIndependentCacheRows()
+    {
+        // "Paris" (EN) and its Macedonian equivalent under the same normalised key are
+        // separate rows because LanguageCode is part of the unique index.
+        await SeedToponymAsync("paris", "Paris", LocationType.City, 48.8566, 2.3522, "en");
+        await SeedToponymAsync("париз", "Париз", LocationType.City, 48.8566, 2.3522, "mk");
+
+        var enResult = await Catalog.ValidateAsync("Paris", LocationType.City, GameLanguage.En);
+        var mkResult = await Catalog.ValidateAsync("Париз", LocationType.City, GameLanguage.Mk);
+
+        Assert.Equal(ScoringRules.ValidPoints, enResult.Points);
+        Assert.Equal(ScoringRules.ValidPoints, mkResult.Points);
+        Assert.Equal(0, _spy.Calls);
+    }
+
+    [Fact]
+    public async Task CatalogHit_EnglishSeed_DoesNotMatchMacedonianRequest()
+    {
+        await SeedToponymAsync("london", "London", LocationType.City, 51.5074, -0.1278, "en");
+        _spy.Reset(invalidByDefault: true);
+
+        // Asking for "london" in MK should miss the EN-only cache row
+        var result = await Catalog.ValidateAsync("London", LocationType.City, GameLanguage.Mk);
+
+        Assert.Equal(1, _spy.Calls);
+        Assert.Equal(ScoringRules.InvalidPoints, result.Points);
+    }
+
+    [Fact]
+    public async Task CacheMiss_MacedonianAnswer_PersistedWithMkLanguageCode()
+    {
+        _spy.Reset(points: ScoringRules.ValidPoints, coordinates: "41.9981,21.4254");
+
+        await Catalog.ValidateAsync("Скопје", LocationType.City, GameLanguage.Mk);
+
+        var toponym = await FindToponymAsync("скопје", LocationType.City, "mk");
+        Assert.NotNull(toponym);
+        Assert.Equal("mk", toponym.LanguageCode);
     }
 
     // ── Spy ────────────────────────────────────────────────────────────────
@@ -245,7 +294,9 @@ public sealed class CatalogGeocodingServiceTests : IDisposable
         }
 
         public Task<GeocodeResult> ValidateAsync(
-            string location, LocationType locationType, CancellationToken cancellationToken = default)
+            string location, LocationType locationType,
+            GameLanguage language = GameLanguage.En,
+            CancellationToken cancellationToken = default)
         {
             Calls++;
             return Task.FromResult(new GeocodeResult

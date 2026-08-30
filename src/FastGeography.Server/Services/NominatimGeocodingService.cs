@@ -45,17 +45,19 @@ public sealed class NominatimGeocodingService : IGeocodingService
     public async Task<GeocodeResult> ValidateAsync(
         string location,
         LocationType locationType,
+        GameLanguage language = GameLanguage.En,
         CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"geocode:nominatim:{location.Trim().ToLowerInvariant()}:{locationType}";
+        var langCode = language.ToCode();
+        var cacheKey = $"geocode:nominatim:{langCode}:{location.Trim().ToLowerInvariant()}:{locationType}";
 
         if (_cache.TryGetValue(cacheKey, out GeocodeResult? cached) && cached is not null)
         {
-            _logger.LogDebug("Nominatim cache hit for {Location}/{LocationType}", location, locationType);
+            _logger.LogDebug("Nominatim cache hit for {Location}/{LocationType}/{Language}", location, locationType, langCode);
             return cached;
         }
 
-        var result = await CallNominatimAsync(location, locationType, cancellationToken);
+        var result = await CallNominatimAsync(location, locationType, langCode, cancellationToken);
 
         _cache.Set(cacheKey, result, CacheTtl);
         return result;
@@ -64,6 +66,7 @@ public sealed class NominatimGeocodingService : IGeocodingService
     private async Task<GeocodeResult> CallNominatimAsync(
         string location,
         LocationType locationType,
+        string langCode,
         CancellationToken cancellationToken)
     {
         try
@@ -71,12 +74,19 @@ public sealed class NominatimGeocodingService : IGeocodingService
             await ThrottleAsync(cancellationToken);
 
             var client = _httpClientFactory.CreateClient("nominatim");
-            var url = $"search?q={Uri.EscapeDataString(location)}&format=jsonv2&limit=5&addressdetails=1";
+            var url = $"search?q={Uri.EscapeDataString(location)}&format=jsonv2&limit=5&addressdetails=1&accept-language={Uri.EscapeDataString(langCode)}";
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(RequestTimeout);
 
-            var results = await client.GetFromJsonAsync<NominatimResult[]>(url, cts.Token);
+            // Also send Accept-Language header for providers that honour it.
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.TryAddWithoutValidation("Accept-Language", langCode);
+
+            using var response = await client.SendAsync(request, cts.Token);
+            response.EnsureSuccessStatusCode();
+
+            var results = await response.Content.ReadFromJsonAsync<NominatimResult[]>(cts.Token);
 
             if (results is not { Length: > 0 })
             {

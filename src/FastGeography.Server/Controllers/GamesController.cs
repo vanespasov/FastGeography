@@ -29,10 +29,11 @@ public class GamesController : ControllerBase
     }
 
     [HttpPost("solo/start")]
-    public async Task<IActionResult> StartSolo()
+    public async Task<IActionResult> StartSolo([FromQuery] string? lang)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var letter = (char)('A' + Random.Shared.Next(0, 26));
+        var language = GameLanguageExtensions.Parse(lang);
+        var letter = Alphabet.RandomLetter(language);
         var now = DateTime.UtcNow;
 
         var round = new GameRound
@@ -40,6 +41,7 @@ public class GamesController : ControllerBase
             Id = Guid.NewGuid(),
             Mode = GameMode.Solo,
             Letter = letter,
+            LanguageCode = language.ToCode(),
             StartedAt = now,
             EndsAt = now.AddSeconds(ScoringRules.DefaultTimerSeconds)
         };
@@ -47,7 +49,7 @@ public class GamesController : ControllerBase
         _db.GameRounds.Add(round);
         await _db.SaveChangesAsync();
 
-        return Ok(new SoloStartResponse(round.Id, round.Letter, round.EndsAt));
+        return Ok(new SoloStartResponse(round.Id, round.Letter, round.EndsAt, round.LanguageCode));
     }
 
     [HttpPost("solo/{roundId:guid}/submit")]
@@ -64,7 +66,12 @@ public class GamesController : ControllerBase
             .AnyAsync(s => s.RoundId == roundId && s.UserId == userId);
         if (alreadySubmitted) return Conflict("Already submitted for this round.");
 
-        var details = await ValidateAllAsync(round.Letter, request);
+        // Use the language from the round (authoritative); fall back to request for
+        // backward-compat with older clients that do not send LanguageCode.
+        var language = GameLanguageExtensions.Parse(
+            string.IsNullOrEmpty(round.LanguageCode) ? request.LanguageCode : round.LanguageCode);
+
+        var details = await ValidateAllAsync(round.Letter, language, request);
         var submission = BuildSubmission(roundId, userId, request, details);
 
         _db.RoundSubmissions.Add(submission);
@@ -84,30 +91,30 @@ public class GamesController : ControllerBase
         return Ok(new SoloSubmitResponse(submission.TotalPoints, badge, details));
     }
 
-    private async Task<List<LocationResult>> ValidateAllAsync(char letter, SubmitAnswersRequest req)
+    private async Task<List<LocationResult>> ValidateAllAsync(char letter, GameLanguage language, SubmitAnswersRequest req)
     {
         var tasks = new[]
         {
-            ValidateAsync(LocationType.City,     req.City,     letter),
-            ValidateAsync(LocationType.Village,  req.Village,  letter),
-            ValidateAsync(LocationType.Country,  req.Country,  letter),
-            ValidateAsync(LocationType.River,    req.River,    letter),
-            ValidateAsync(LocationType.Mountain, req.Mountain, letter),
+            ValidateAsync(LocationType.City,     req.City,     letter, language),
+            ValidateAsync(LocationType.Village,  req.Village,  letter, language),
+            ValidateAsync(LocationType.Country,  req.Country,  letter, language),
+            ValidateAsync(LocationType.River,    req.River,    letter, language),
+            ValidateAsync(LocationType.Mountain, req.Mountain, letter, language),
         };
 
         await Task.WhenAll(tasks);
         return tasks.Select(t => t.Result).ToList();
     }
 
-    private async Task<LocationResult> ValidateAsync(LocationType type, string? answer, char letter)
+    private async Task<LocationResult> ValidateAsync(LocationType type, string? answer, char letter, GameLanguage language)
     {
         if (string.IsNullOrWhiteSpace(answer))
             return new LocationResult(type, answer, ScoringRules.EmptyPoints, null);
 
-        if (!answer.StartsWith(letter.ToString(), StringComparison.OrdinalIgnoreCase))
+        if (!Alphabet.StartsWithLetter(answer, letter))
             return new LocationResult(type, answer, ScoringRules.WrongLetterPoints, null);
 
-        var result = await _geocodingService.ValidateAsync(answer, type);
+        var result = await _geocodingService.ValidateAsync(answer, type, language);
         return new LocationResult(type, answer, result.Points, result.Coordinates);
     }
 

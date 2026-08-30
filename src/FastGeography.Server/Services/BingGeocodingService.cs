@@ -30,6 +30,7 @@ public sealed class BingGeocodingService : IGeocodingService
     public async Task<GeocodeResult> ValidateAsync(
         string location,
         LocationType locationType,
+        GameLanguage language = GameLanguage.En,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(_options.BingMaps.ApiKey))
@@ -40,15 +41,16 @@ public sealed class BingGeocodingService : IGeocodingService
             return Invalid(locationType);
         }
 
-        var cacheKey = $"geocode:bing:{location.Trim().ToLowerInvariant()}:{locationType}";
+        var langCode = language.ToCode();
+        var cacheKey = $"geocode:bing:{langCode}:{location.Trim().ToLowerInvariant()}:{locationType}";
 
         if (_cache.TryGetValue(cacheKey, out GeocodeResult? cached) && cached is not null)
         {
-            _logger.LogDebug("Cache hit for {Location}/{LocationType}", location, locationType);
+            _logger.LogDebug("Cache hit for {Location}/{LocationType}/{Language}", location, locationType, langCode);
             return cached;
         }
 
-        var result = await CallBingAsync(location, locationType, cancellationToken);
+        var result = await CallBingAsync(location, locationType, langCode, cancellationToken);
 
         _cache.Set(cacheKey, result, CacheTtl);
         return result;
@@ -57,16 +59,25 @@ public sealed class BingGeocodingService : IGeocodingService
     private async Task<GeocodeResult> CallBingAsync(
         string location,
         LocationType locationType,
+        string langCode,
         CancellationToken cancellationToken)
     {
         try
         {
+            // Map ISO 639-1 code to a BCP 47 culture tag Bing understands.
+            var culture = langCode switch
+            {
+                "mk" => "mk-MK",
+                _    => "en-US"
+            };
+
             var request = new GeocodeRequest
             {
                 Query = location,
                 IncludeIso2 = true,
                 MaxResults = 1,
-                BingMapsKey = _options.BingMaps.ApiKey
+                BingMapsKey = _options.BingMaps.ApiKey,
+                Culture = culture
             };
 
             var response = await request.Execute().WaitAsync(RequestTimeout, cancellationToken);

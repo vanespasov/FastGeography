@@ -2,7 +2,7 @@ namespace FastGeography.Shared.Dtos;
 
 using FastGeography.Shared;
 
-public record CreateRoomResponse(string RoomCode);
+public record CreateRoomResponse(string RoomCode, string LanguageCode);
 
 /// <summary>One completed round row belonging to a single player (letter + their scored answers).</summary>
 public record CompletedRoundRow(char Letter, List<LocationResult> Details);
@@ -15,7 +15,9 @@ public record RoomStateDto(
     int RoundsCompletedInSet,
     bool SetComplete,
     /// <summary>Caller-only: their own completed rows for the current set.</summary>
-    List<CompletedRoundRow> MyCompletedRounds);
+    List<CompletedRoundRow> MyCompletedRounds,
+    /// <summary>ISO game language code for this room ("en" or "mk").</summary>
+    string LanguageCode);
 
 public record RoundStartedMessage(char Letter, DateTime EndsAt, int RoundNumber);
 
