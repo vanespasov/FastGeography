@@ -46,6 +46,10 @@ a, .btn-link {
     z-index: 1000;
 }
 
+#blazor-error-ui.show {
+    display: block;
+}
+
     #blazor-error-ui .dismiss {
         cursor: pointer;
         position: absolute;

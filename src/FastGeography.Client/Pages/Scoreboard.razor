@@ -2,6 +2,12 @@
 @inject HttpClient Http
 
 <PageTitle>Scoreboard – FastGeography</PageTitle>
+@if (_error is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <strong>Could not load scoreboard.</strong> @_error
+    </div>
+}
 
 <div class="container-fluid py-3">
     <h2>Global Scoreboard</h2>
@@ -71,6 +77,7 @@
     private List<LeaderboardEntry>? _entries;
     private bool _loading = true;
     private string _filter = "alltime";
+    private string? _error;
 
     protected override async Task OnInitializedAsync() => await LoadLeaderboard("alltime");
 
@@ -78,9 +85,20 @@
     {
         _filter = filter;
         _loading = true;
+        _error = null;
         _entries = null;
         StateHasChanged();
-        _entries = await Http.GetFromJsonAsync<List<LeaderboardEntry>>($"api/leaderboard?filter={filter}");
-        _loading = false;
+        try
+        {
+            _entries = await Http.GetFromJsonAsync<List<LeaderboardEntry>>($"api/leaderboard?filter={filter}");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 }

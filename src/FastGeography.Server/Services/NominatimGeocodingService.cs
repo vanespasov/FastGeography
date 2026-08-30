@@ -141,23 +141,30 @@ public sealed class NominatimGeocodingService : IGeocodingService
 
     public static bool LocationMatchesType(NominatimResult result, LocationType locationType)
     {
+        // jsonv2 renamed OSM "class" to "category"; accept either so both formats match.
+        var featureClass = result.FeatureClass ?? string.Empty;
+        var type = result.Type ?? string.Empty;
+        var addressType = result.AddressType ?? string.Empty;
+
         return locationType switch
         {
             // Bing treats City and Village both as "PopulatedPlace"; use Nominatim's
             // addresstype which is derived from OSM place= or boundary= tags.
             LocationType.City or LocationType.Village =>
-                PopulatedPlaceAddressTypes.Contains(result.AddressType ?? string.Empty),
+                PopulatedPlaceAddressTypes.Contains(addressType),
 
             LocationType.Country =>
-                string.Equals(result.AddressType, "country", StringComparison.OrdinalIgnoreCase),
+                string.Equals(addressType, "country", StringComparison.OrdinalIgnoreCase),
 
             LocationType.Mountain =>
-                string.Equals(result.Class, "natural", StringComparison.OrdinalIgnoreCase) &&
-                MountainTypes.Contains(result.Type ?? string.Empty),
+                MountainAddressTypes.Contains(addressType) ||
+                (string.Equals(featureClass, "natural", StringComparison.OrdinalIgnoreCase) &&
+                 MountainTypes.Contains(type)),
 
             LocationType.River =>
-                string.Equals(result.Class, "waterway", StringComparison.OrdinalIgnoreCase) &&
-                RiverTypes.Contains(result.Type ?? string.Empty),
+                RiverAddressTypes.Contains(addressType) ||
+                (string.Equals(featureClass, "waterway", StringComparison.OrdinalIgnoreCase) &&
+                 RiverTypes.Contains(type)),
 
             _ => false
         };
@@ -174,9 +181,15 @@ public sealed class NominatimGeocodingService : IGeocodingService
         };
 
     private static readonly HashSet<string> MountainTypes =
-        new(StringComparer.OrdinalIgnoreCase) { "peak", "ridge", "mountain_range", "hill" };
+        new(StringComparer.OrdinalIgnoreCase) { "peak", "ridge", "mountain_range", "hill", "volcano" };
+
+    private static readonly HashSet<string> MountainAddressTypes =
+        new(StringComparer.OrdinalIgnoreCase) { "peak", "ridge", "mountain_range", "hill", "volcano" };
 
     private static readonly HashSet<string> RiverTypes =
+        new(StringComparer.OrdinalIgnoreCase) { "river", "stream", "canal", "drain" };
+
+    private static readonly HashSet<string> RiverAddressTypes =
         new(StringComparer.OrdinalIgnoreCase) { "river", "stream", "canal", "drain" };
 }
 
@@ -186,8 +199,17 @@ public sealed class NominatimResult
     [JsonPropertyName("class")]
     public string? Class { get; init; }
 
+    /// <summary>
+    /// jsonv2 name for OSM class. Prefer <see cref="FeatureClass"/> when matching types.
+    /// </summary>
+    [JsonPropertyName("category")]
+    public string? Category { get; init; }
+
     [JsonPropertyName("type")]
     public string? Type { get; init; }
+
+    /// <summary>OSM feature class from either json (<c>class</c>) or jsonv2 (<c>category</c>).</summary>
+    public string? FeatureClass => Class ?? Category;
 
     /// <summary>
     /// High-level address category (e.g. "city", "country", "peak").

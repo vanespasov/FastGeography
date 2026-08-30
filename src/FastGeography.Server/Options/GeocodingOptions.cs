@@ -28,7 +28,7 @@ public sealed class NominatimOptions
     /// Required by the Nominatim usage policy for the public instance.
     /// Set to something that identifies your application and provides contact information.
     /// </summary>
-    public string UserAgent { get; set; } = "FastGeography/1.0 (contact@example.com)";
+    public string UserAgent { get; set; } = "FastGeography/1.0 (https://github.com/FastGeography)";
 }
 
 /// <summary>Options for the GeoNames geocoding adapter.</summary>

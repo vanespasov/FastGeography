@@ -62,9 +62,24 @@ public sealed class NominatimTypeMatchingTests
     [InlineData("ridge")]
     [InlineData("mountain_range")]
     [InlineData("hill")]
+    [InlineData("volcano")]
     public void NaturalPeak_MatchesMountain(string type)
     {
         var result = MakeResult(cls: "natural", type: type);
+        Assert.True(NominatimGeocodingService.LocationMatchesType(result, LocationType.Mountain));
+    }
+
+    [Fact]
+    public void JsonV2Category_NaturalPeak_MatchesMountain()
+    {
+        var result = new NominatimResult { Category = "natural", Type = "peak", Lat = "0", Lon = "0" };
+        Assert.True(NominatimGeocodingService.LocationMatchesType(result, LocationType.Mountain));
+    }
+
+    [Fact]
+    public void VolcanoAddressType_MatchesMountain()
+    {
+        var result = MakeResult(addressType: "volcano", type: "volcano");
         Assert.True(NominatimGeocodingService.LocationMatchesType(result, LocationType.Mountain));
     }
 
@@ -84,6 +99,13 @@ public sealed class NominatimTypeMatchingTests
     public void WaterwayRiver_MatchesRiver(string type)
     {
         var result = MakeResult(cls: "waterway", type: type);
+        Assert.True(NominatimGeocodingService.LocationMatchesType(result, LocationType.River));
+    }
+
+    [Fact]
+    public void RiverAddressType_MatchesRiverWithoutClass()
+    {
+        var result = MakeResult(addressType: "river", type: "river");
         Assert.True(NominatimGeocodingService.LocationMatchesType(result, LocationType.River));
     }
 

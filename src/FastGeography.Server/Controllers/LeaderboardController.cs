@@ -21,29 +21,38 @@ public class LeaderboardController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetLeaderboard([FromQuery] string filter = "alltime")
     {
-        var cutoff = filter == "week"
-            ? DateTime.UtcNow.AddDays(-7)
-            : DateTime.MinValue;
-
-        IQueryable<(string UserId, int Points, int Games)> query;
+        List<(string UserId, int Points, int Games)> raw;
 
         if (filter == "week")
         {
-            query = _db.RoundSubmissions
+            var cutoff = DateTime.UtcNow.AddDays(-7);
+
+            // GroupBy with aggregates over a joined navigation cannot be translated by EF Core.
+            // Fetch only the columns needed, then aggregate in memory.
+            var submissions = await _db.RoundSubmissions
                 .Where(s => s.Round.StartedAt >= cutoff)
+                .Select(s => new
+                {
+                    s.UserId,
+                    Points = s.CityPoints + s.VillagePoints + s.CountryPoints + s.RiverPoints + s.MountainPoints
+                })
+                .ToListAsync();
+
+            raw = submissions
                 .GroupBy(s => s.UserId)
-                .Select(g => new ValueTuple<string, int, int>(
-                    g.Key,
-                    g.Sum(s => s.CityPoints + s.VillagePoints + s.CountryPoints + s.RiverPoints + s.MountainPoints),
-                    g.Count()));
+                .Select(g => (g.Key, g.Sum(s => s.Points), g.Count()))
+                .OrderByDescending(x => x.Item2)
+                .Take(25)
+                .ToList();
         }
         else
         {
-            query = _db.PlayerProfiles
-                .Select(p => new ValueTuple<string, int, int>(p.UserId, p.CareerPoints, p.GamesPlayed));
+            raw = await _db.PlayerProfiles
+                .Select(p => new ValueTuple<string, int, int>(p.UserId, p.CareerPoints, p.GamesPlayed))
+                .OrderByDescending(x => x.Item2)
+                .Take(25)
+                .ToListAsync();
         }
-
-        var raw = await query.OrderByDescending(x => x.Item2).Take(25).ToListAsync();
 
         var userIds = raw.Select(r => r.Item1).ToList();
         var displayNames = await _db.Users

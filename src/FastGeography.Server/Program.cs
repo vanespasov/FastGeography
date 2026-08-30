@@ -94,7 +94,9 @@ public partial class Program
         {
             var opts = sp.GetRequiredService<IOptions<GeocodingOptions>>().Value.Nominatim;
             client.BaseAddress = new Uri(opts.BaseUrl);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd(opts.UserAgent);
+            // TryAddWithoutValidation: User-Agent comments with URLs/semicolons fail ParseAdd.
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", opts.UserAgent);
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
             client.Timeout = TimeSpan.FromSeconds(15);
         });
         builder.Services.AddHttpClient("geonames", (sp, client) =>
