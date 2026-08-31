@@ -14,18 +14,14 @@ public static class DestinationStoryServiceCollectionExtensions
         services.Configure<DestinationAiOptions>(
             configuration.GetSection(DestinationAiOptions.Section));
 
-        // Backward compatibility: OpenAI:ApiKey / OpenAI:Model still work when DestinationAi is unset.
         services.PostConfigure<DestinationAiOptions>(opts =>
         {
             var legacyKey = configuration["OpenAI:ApiKey"];
+            var envKey = configuration["OPENAI_API_KEY"];
             var legacyModel = configuration["OpenAI:Model"];
 
-            if (opts.GetProvider() is DestinationAiProvider.None
-                && !string.IsNullOrWhiteSpace(legacyKey))
-            {
-                opts.Provider = nameof(DestinationAiProvider.OpenAI);
-                opts.ApiKey = legacyKey;
-            }
+            if (string.IsNullOrWhiteSpace(opts.ApiKey))
+                opts.ApiKey = FirstNonEmpty(legacyKey, envKey);
 
             if (string.IsNullOrWhiteSpace(opts.Model) && !string.IsNullOrWhiteSpace(legacyModel))
                 opts.Model = legacyModel;
@@ -41,7 +37,13 @@ public static class DestinationStoryServiceCollectionExtensions
             }
         });
 
-        services.AddHttpClient("destination-ai");
+        // Aspire AddServiceDefaults() attaches a 10s StandardResilienceHandler to every
+        // HttpClient. Chat completions (especially local Ollama) often exceed that.
+#pragma warning disable EXTEXP0001 // RemoveAllResilienceHandlers is experimental
+        services.AddHttpClient("destination-ai", client =>
+            client.Timeout = TimeSpan.FromMinutes(2))
+            .RemoveAllResilienceHandlers();
+#pragma warning restore EXTEXP0001
 
         services.AddSingleton<IDestinationStoryService>(sp =>
         {
@@ -61,4 +63,7 @@ public static class DestinationStoryServiceCollectionExtensions
 
         return services;
     }
+
+    private static string FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? string.Empty;
 }

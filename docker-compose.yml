@@ -22,9 +22,12 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__fastgeography-db: Host=postgres;Port=5432;Database=fastgeography;Username=postgres;Password=${POSTGRES_PASSWORD:-change-me}
-      DestinationAi__Provider: ${DestinationAi__Provider:-None}
+      DestinationAi__Provider: ${DestinationAi__Provider:-Auto}
       DestinationAi__Model: ${DestinationAi__Model:-gpt-4o-mini}
       DestinationAi__ApiKey: ${DestinationAi__ApiKey:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DestinationAi__OllamaModel: ${DestinationAi__OllamaModel:-llama3.2:3b}
+      DestinationAi__OllamaBaseUrl: ${DestinationAi__OllamaBaseUrl:-http://ollama:11434/v1}
       DestinationAi__BaseUrl: ${DestinationAi__BaseUrl:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GROK_API_KEY: ${GROK_API_KEY:-}

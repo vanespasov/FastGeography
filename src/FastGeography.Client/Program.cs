@@ -21,7 +21,8 @@ builder.Services.AddScoped(sp =>
     handler.InnerHandler = new HttpClientHandler();
     return new HttpClient(handler)
     {
-        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
+        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
+        Timeout = TimeSpan.FromMinutes(2)
     };
 });
 
