@@ -1,0 +1,85 @@
+@page "/login"
+@inject CookieAuthenticationStateProvider Auth
+@inject NavigationManager Nav
+@inject IStringLocalizer<UiStrings> L
+
+<PageTitle>@L["Login_PageTitle"]</PageTitle>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>@L["Login_Heading"]</h2>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger">@_error</div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="DoLogin">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label class="form-label">@L["Login_Email"]</label>
+                <InputText @bind-Value="_model.Email" class="form-control" type="email"
+                           placeholder="you@example.com" autocomplete="email" />
+                <ValidationMessage For="() => _model.Email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">@L["Login_Password"]</label>
+                <InputText @bind-Value="_model.Password" class="form-control" type="password"
+                           placeholder="@L["Login_Password"]" autocomplete="current-password" />
+                <ValidationMessage For="() => _model.Password" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@_busy">
+                @(_busy ? L["Login_Busy"].Value : L["Login_Submit"].Value)
+            </button>
+        </EditForm>
+
+        <p class="mt-3 text-center">
+            @L["Login_NoAccount"] <a href="/register">@L["Login_RegisterLink"]</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private readonly LoginModel _model = new();
+    private string? _error;
+    private bool _busy;
+    private string? _returnUrl;
+
+    protected override void OnInitialized()
+    {
+        var query = new Uri(Nav.Uri).Query;
+        foreach (var part in query.TrimStart('?').Split('&'))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0] == "returnUrl")
+            {
+                _returnUrl = Uri.UnescapeDataString(kv[1]);
+                break;
+            }
+        }
+    }
+
+    private async Task DoLogin()
+    {
+        _busy = true;
+        _error = null;
+        var ok = await Auth.LoginAsync(_model.Email, _model.Password);
+        _busy = false;
+
+        if (ok) Nav.NavigateTo(string.IsNullOrWhiteSpace(_returnUrl) ? "/" : _returnUrl);
+        else _error = L["Login_InvalidCredentials"];
+    }
+
+    private sealed class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Password { get; set; } = string.Empty;
+    }
+}

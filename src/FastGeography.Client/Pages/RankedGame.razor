@@ -1,0 +1,196 @@
+@page "/ranked"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject CookieAuthenticationStateProvider Auth
+@inject ILogger<RankedGame> Logger
+@inject GameLanguageState Language
+@inject IStringLocalizer<UiStrings> L
+
+<PageTitle>@L["Ranked_PageTitle"]</PageTitle>
+
+<div class="game-container">
+    <div class="game-header">
+        <div>
+            <h4>@L["Ranked_Heading"]</h4>
+            <small class="text-muted">@L["Ranked_Subtitle"]</small>
+        </div>
+        <button @onclick="StartRound"
+                class="btn btn-lg btn-success game-button"
+                disabled="@(_roundActive || _checking)">
+            <i class="oi oi-play-circle" aria-hidden="true"></i> @L["Ranked_StartRound"]
+        </button>
+        @if (_roundActive)
+        {
+            <div class="timer-container">
+                <Countdown @ref="_countdown" TimerOut="OnTimerExpired" />
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger alert-dismissible">
+            @_error
+            <button type="button" class="btn-close" @onclick="() => _error = null"></button>
+        </div>
+    }
+
+    @if (_checking)
+    {
+        <div class="d-flex align-items-center gap-2 my-2" role="status">
+            <div class="spinner-border spinner-border-sm text-success"></div>
+            <span>@L["Ranked_Submitting"]</span>
+        </div>
+    }
+
+    @if (_result is not null)
+    {
+        <div class="alert alert-success mt-3">
+            <strong>@L["Ranked_RoundComplete"]</strong> @L["Ranked_YouScored"] <strong>@_result.TotalPoints @L["Ranked_Points"]</strong>.
+            @L["Ranked_Badge"] <strong>@L[$"Badge_{_result.Badge}"]</strong>
+            <a href="/scoreboard" class="ms-2">@L["Ranked_ViewScoreboard"]</a>
+        </div>
+        <table class="table table-sm mt-2">
+            <thead><tr><th>@L["Col_Category"]</th><th>@L["Col_Answer"]</th><th>@L["Col_Points"]</th></tr></thead>
+            <tbody>
+                @foreach (var d in _result.Details)
+                {
+                    <tr class="@ScoringRules.CssRowClass(d.Points)">
+                        <td>@L[$"Location_{d.Type}"]</td>
+                        <td>@(string.IsNullOrEmpty(d.Answer) ? "–" : d.Answer)</td>
+                        <td>@d.Points</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (_storyPlaces is { Count: > 0 })
+        {
+            <DestinationStories Places="@_storyPlaces" />
+        }
+    }
+
+    @if (_roundActive && _roundId.HasValue)
+    {
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th>@L["Col_Letter"]</th>
+                    <th>@L["Col_City"]</th>
+                    <th>@L["Col_Village"]</th>
+                    <th>@L["Col_Country"]</th>
+                    <th>@L["Col_River"]</th>
+                    <th>@L["Col_Mountain"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>@_letter</strong></td>
+                    <td><input @bind="_city" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td><input @bind="_village" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td><input @bind="_country" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td><input @bind="_river" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td><input @bind="_mountain" class="form-control form-control-sm" disabled="@_checking" /></td>
+                    <td>
+                        <button @onclick="Submit" class="btn btn-primary btn-sm" disabled="@_checking">
+                            @L["Ranked_Check"]
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private Countdown _countdown = null!;
+    private Guid? _roundId;
+    private char _letter;
+    private string _languageCode = "en";
+    private DateTime _endsAt;
+    private bool _roundActive;
+    private bool _checking;
+    private string? _error;
+    private SoloSubmitResponse? _result;
+
+    private string? _city, _village, _country, _river, _mountain;
+    private List<StoryRequest>? _storyPlaces;
+
+    private async Task StartRound()
+    {
+        _error = null;
+        _result = null;
+        _storyPlaces = null;
+
+        await Language.EnsureLoadedAsync();
+        _languageCode = Language.Code;
+
+        var response = await Http.PostAsync($"api/games/solo/start?lang={_languageCode}", null);
+        if (!response.IsSuccessStatusCode)
+        {
+            _error = L["Ranked_FailedToStart"];
+            return;
+        }
+
+        var start = await response.Content.ReadFromJsonAsync<SoloStartResponse>();
+        if (start is null) { _error = L["Ranked_InvalidResponse"]; return; }
+
+        _roundId = start.RoundId;
+        _letter = start.Letter;
+        _languageCode = start.LanguageCode;
+        _endsAt = start.EndsAt;
+        _city = _village = _country = _river = _mountain = string.Empty;
+        _roundActive = true;
+
+        var secondsLeft = Math.Max(1, (int)(_endsAt - DateTime.UtcNow).TotalSeconds);
+        _countdown.Start(secondsLeft);
+    }
+
+    private async Task OnTimerExpired() => await Submit();
+
+    private async Task Submit()
+    {
+        if (!_roundActive || !_roundId.HasValue) return;
+
+        _countdown.Stop();
+        _roundActive = false;
+        _checking = true;
+        _error = null;
+
+        try
+        {
+            var req = new SubmitAnswersRequest(_city, _village, _country, _river, _mountain, _languageCode);
+            var resp = await Http.PostAsJsonAsync($"api/games/solo/{_roundId}/submit", req);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                _result = await resp.Content.ReadFromJsonAsync<SoloSubmitResponse>();
+                _storyPlaces = _result?.Details
+                    .Where(d => d.Points == ScoringRules.ValidPoints && !string.IsNullOrWhiteSpace(d.Answer))
+                    .Select(d => new StoryRequest(d.Answer!, d.Type, d.Coordinates, _languageCode))
+                    .ToList();
+            }
+            else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                _error = L["Ranked_AlreadySubmitted"];
+            }
+            else if (resp.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                _error = L["Ranked_RejectedSubmission"];
+            }
+            else
+            {
+                _error = L["Ranked_SubmissionFailed"];
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error submitting ranked answers");
+            _error = L["Ranked_SubmissionError"];
+        }
+        finally
+        {
+            _checking = false;
+        }
+    }
+}

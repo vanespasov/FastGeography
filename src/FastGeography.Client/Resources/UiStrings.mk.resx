@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- ── Навигација ── -->
+  <data name="Nav_CasualPlay" xml:space="preserve"><value>Слободна игра</value></data>
+  <data name="Nav_Ranked" xml:space="preserve"><value>Рангирана</value></data>
+  <data name="Nav_Multiplayer" xml:space="preserve"><value>Повеќеиграчи</value></data>
+  <data name="Nav_Scoreboard" xml:space="preserve"><value>Табела</value></data>
+  <data name="Nav_SignIn" xml:space="preserve"><value>Најава</value></data>
+  <data name="Nav_Register" xml:space="preserve"><value>Регистрација</value></data>
+  <data name="Nav_SignOut" xml:space="preserve"><value>Одјава</value></data>
+  <data name="Nav_ChooseLanguage" xml:space="preserve"><value>Изберете јазик на играта</value></data>
+  <data name="Nav_NavigationMenu" xml:space="preserve"><value>Навигациско мени</value></data>
+
+  <!-- ── Слободна игра (GameTable) ── -->
+  <data name="Game_StartNewAdventure" xml:space="preserve"><value>Започни ново патување!</value></data>
+  <data name="Game_StartNewGame" xml:space="preserve"><value>Започни нова игра</value></data>
+  <data name="Game_Countdown" xml:space="preserve"><value>Одбројување</value></data>
+  <data name="Game_Dismiss" xml:space="preserve"><value>Затвори</value></data>
+  <data name="Game_CheckingAnswers" xml:space="preserve"><value>Се проверуваат одговорите…</value></data>
+  <data name="Game_NoGameStarted" xml:space="preserve"><value>Нема започната игра. Ве молам започнете.</value></data>
+  <data name="Game_TotalPoints" xml:space="preserve"><value>Вкупно поени: {0}</value></data>
+  <data name="Game_AmazingExplorer" xml:space="preserve"><value>Неверојатен истражувач! Ја освоивте значката {0}!</value></data>
+  <data name="Game_AnswersTable" xml:space="preserve"><value>Одговори за географија</value></data>
+  <data name="Game_ValidationError" xml:space="preserve"><value>Некои одговори не можеа да се проверат. Обидете се повторно.</value></data>
+  <data name="Game_Encourage_Outstanding" xml:space="preserve"><value>Одлично! Вие сте географски гениј!</value></data>
+  <data name="Game_Encourage_Amazing" xml:space="preserve"><value>Неверојатно! Продолжете со истражување!</value></data>
+  <data name="Game_Encourage_Good" xml:space="preserve"><value>Добра работа! Учите брзо!</value></data>
+  <data name="Game_Encourage_NiceTry" xml:space="preserve"><value>Добар обид! Ајде да откриеме повеќе места!</value></data>
+  <data name="Game_Encourage_TryAgain" xml:space="preserve"><value>Секоја игра ве прави попаметни! Обидете се повторно!</value></data>
+
+  <!-- ── Наслови на колони ── -->
+  <data name="Col_Letter" xml:space="preserve"><value>Буква</value></data>
+  <data name="Col_City" xml:space="preserve"><value>Град</value></data>
+  <data name="Col_Village" xml:space="preserve"><value>Село</value></data>
+  <data name="Col_Country" xml:space="preserve"><value>Држава</value></data>
+  <data name="Col_River" xml:space="preserve"><value>Река</value></data>
+  <data name="Col_Mountain" xml:space="preserve"><value>Планина</value></data>
+  <data name="Col_TimeSec" xml:space="preserve"><value>Време (с)</value></data>
+  <data name="Col_Action" xml:space="preserve"><value>Акција</value></data>
+  <data name="Col_Category" xml:space="preserve"><value>Категорија</value></data>
+  <data name="Col_Answer" xml:space="preserve"><value>Одговор</value></data>
+  <data name="Col_Points" xml:space="preserve"><value>Поени</value></data>
+  <data name="Col_Player" xml:space="preserve"><value>Играч</value></data>
+
+  <!-- ── GameRow ── -->
+  <data name="GameRow_GameLetter" xml:space="preserve"><value>Буква за игра</value></data>
+  <data name="GameRow_InputAriaLabel" xml:space="preserve"><value>{0} кое почнува со {1}</value></data>
+  <data name="GameRow_ViewOnMap" xml:space="preserve"><value>Прикажи {0} на карта</value></data>
+  <data name="GameRow_ViewOnMapAlt" xml:space="preserve"><value>Прикажи на карта</value></data>
+  <data name="GameRow_CheckButton" xml:space="preserve"><value>Провери</value></data>
+  <data name="GameRow_CheckAriaLabel" xml:space="preserve"><value>Провери одговори за буквата {0}</value></data>
+
+  <!-- ── Рангирана игра ── -->
+  <data name="Ranked_PageTitle" xml:space="preserve"><value>Рангирана игра – FastGeography</value></data>
+  <data name="Ranked_Heading" xml:space="preserve"><value>Рангиран режим</value></data>
+  <data name="Ranked_Subtitle" xml:space="preserve"><value>Поените се зачувуваат на глобалната табела.</value></data>
+  <data name="Ranked_StartRound" xml:space="preserve"><value>Започни рангирана рунда</value></data>
+  <data name="Ranked_Submitting" xml:space="preserve"><value>Се испраќа на серверот…</value></data>
+  <data name="Ranked_RoundComplete" xml:space="preserve"><value>Рундата е завршена!</value></data>
+  <data name="Ranked_YouScored" xml:space="preserve"><value>Освоивте</value></data>
+  <data name="Ranked_Points" xml:space="preserve"><value>поени</value></data>
+  <data name="Ranked_Badge" xml:space="preserve"><value>Значка:</value></data>
+  <data name="Ranked_ViewScoreboard" xml:space="preserve"><value>Прикажи табела →</value></data>
+  <data name="Ranked_Check" xml:space="preserve"><value>Провери</value></data>
+  <data name="Ranked_FailedToStart" xml:space="preserve"><value>Не можеше да се започне рунда. Обидете се повторно.</value></data>
+  <data name="Ranked_InvalidResponse" xml:space="preserve"><value>Неважечки одговор од серверот.</value></data>
+  <data name="Ranked_AlreadySubmitted" xml:space="preserve"><value>Рундата е веќе испратена.</value></data>
+  <data name="Ranked_RejectedSubmission" xml:space="preserve"><value>Одговорот е одбиен: можеби времето е истечено.</value></data>
+  <data name="Ranked_SubmissionFailed" xml:space="preserve"><value>Испраќањето не успеа. Обидете се повторно.</value></data>
+  <data name="Ranked_SubmissionError" xml:space="preserve"><value>Грешка при испраќање. Обидете се повторно.</value></data>
+
+  <!-- ── Лоби за повеќеиграчи ── -->
+  <data name="Mp_PageTitle" xml:space="preserve"><value>Повеќеиграчи – FastGeography</value></data>
+  <data name="Mp_Heading" xml:space="preserve"><value>Повеќеиграчи</value></data>
+  <data name="Mp_Description" xml:space="preserve"><value>Играјте живо против пријатели – сите добиваат иста буква и 60 секунди.</value></data>
+  <data name="Mp_CreateRoomTitle" xml:space="preserve"><value>Создај нова соба</value></data>
+  <data name="Mp_CreateRoomDesc" xml:space="preserve"><value>Добијте код за приклучување и споделете го со пријателите.</value></data>
+  <data name="Mp_GameLanguageLabel" xml:space="preserve"><value>Јазик на играта</value></data>
+  <data name="Mp_LangOptionEn" xml:space="preserve"><value>Англиски (латинска А–Ш)</value></data>
+  <data name="Mp_LangOptionMk" xml:space="preserve"><value>Македонски (кирилица А–Ш)</value></data>
+  <data name="Mp_CreateRoom" xml:space="preserve"><value>Создај соба</value></data>
+  <data name="Mp_Creating" xml:space="preserve"><value>Се создава…</value></data>
+  <data name="Mp_JoinRoomTitle" xml:space="preserve"><value>Приклучи се на соба</value></data>
+  <data name="Mp_RoomCodePlaceholder" xml:space="preserve"><value>Внесете код на собата</value></data>
+  <data name="Mp_Join" xml:space="preserve"><value>Приклучи</value></data>
+  <data name="Mp_CreateError" xml:space="preserve"><value>Не можеше да се создаде соба. Обидете се повторно.</value></data>
+  <data name="Mp_JoinCodeEmpty" xml:space="preserve"><value>Внесете код на собата.</value></data>
+
+  <!-- ── Игра за повеќеиграчи ── -->
+  <data name="MpGame_Room" xml:space="preserve"><value>Соба:</value></data>
+  <data name="MpGame_LangEn" xml:space="preserve"><value>Англиски</value></data>
+  <data name="MpGame_LangMk" xml:space="preserve"><value>Македонски</value></data>
+  <data name="MpGame_RoundOf" xml:space="preserve"><value>Рунда {0} / {1}</value></data>
+  <data name="MpGame_SetTotal" xml:space="preserve"><value>Вкупно: {0} поени</value></data>
+  <data name="MpGame_LeaveRoom" xml:space="preserve"><value>Напушти соба</value></data>
+  <data name="MpGame_Players" xml:space="preserve"><value>ИГРАЧИ</value></data>
+  <data name="MpGame_StartRound" xml:space="preserve"><value>Започни рунда</value></data>
+  <data name="MpGame_PlayAnother" xml:space="preserve"><value>Уште 5 рунди</value></data>
+  <data name="MpGame_Disconnected" xml:space="preserve"><value>Исклучени.</value></data>
+  <data name="MpGame_Reconnect" xml:space="preserve"><value>Поврзи повторно</value></data>
+  <data name="MpGame_YourAnswers" xml:space="preserve"><value>Вашите одговори</value></data>
+  <data name="MpGame_Check" xml:space="preserve"><value>Провери</value></data>
+  <data name="MpGame_WaitingPlayers" xml:space="preserve"><value>Се чека другите играчи…</value></data>
+  <data name="MpGame_SetComplete" xml:space="preserve"><value>Серијата е завршена!</value></data>
+  <data name="MpGame_SetCompleteDetail" xml:space="preserve"><value>Освоивте {0} поени во {1} рунди.</value></data>
+  <data name="MpGame_PlayAnotherHint" xml:space="preserve"><value>Употребете „Уште 5 рунди" погоре за нова серија.</value></data>
+  <data name="MpGame_RoundResults" xml:space="preserve"><value>Резултати – рунда {0}</value></data>
+  <data name="MpGame_Pts" xml:space="preserve"><value>поени</value></data>
+  <data name="MpGame_ConnectError" xml:space="preserve"><value>Не може да се поврзе со серверот.</value></data>
+
+  <!-- ── Табела ── -->
+  <data name="Sb_PageTitle" xml:space="preserve"><value>Табела – FastGeography</value></data>
+  <data name="Sb_Heading" xml:space="preserve"><value>Глобална табела</value></data>
+  <data name="Sb_LoadError" xml:space="preserve"><value>Не можеше да се вчита табелата.</value></data>
+  <data name="Sb_AllTime" xml:space="preserve"><value>Сите времиња</value></data>
+  <data name="Sb_ThisWeek" xml:space="preserve"><value>Оваа недела</value></data>
+  <data name="Sb_MyStats" xml:space="preserve"><value>Мои статистики</value></data>
+  <data name="Sb_Loading" xml:space="preserve"><value>Се вчитува…</value></data>
+  <data name="Sb_NoScores" xml:space="preserve"><value>Нема резултати. Бидете први да играте рангирана рунда!</value></data>
+  <data name="Sb_ColRank" xml:space="preserve"><value>#</value></data>
+  <data name="Sb_ColExplorer" xml:space="preserve"><value>Истражувач</value></data>
+  <data name="Sb_ColBadge" xml:space="preserve"><value>Значка</value></data>
+  <data name="Sb_ColPoints" xml:space="preserve"><value>Поени</value></data>
+  <data name="Sb_ColGames" xml:space="preserve"><value>Игри</value></data>
+
+  <!-- ── Најава ── -->
+  <data name="Login_PageTitle" xml:space="preserve"><value>Најава – FastGeography</value></data>
+  <data name="Login_Heading" xml:space="preserve"><value>Најава</value></data>
+  <data name="Login_Email" xml:space="preserve"><value>Е-пошта</value></data>
+  <data name="Login_Password" xml:space="preserve"><value>Лозинка</value></data>
+  <data name="Login_Submit" xml:space="preserve"><value>Најава</value></data>
+  <data name="Login_Busy" xml:space="preserve"><value>Се најавувате…</value></data>
+  <data name="Login_NoAccount" xml:space="preserve"><value>Немате сметка?</value></data>
+  <data name="Login_RegisterLink" xml:space="preserve"><value>Регистрирајте се тука</value></data>
+  <data name="Login_InvalidCredentials" xml:space="preserve"><value>Погрешна е-пошта или лозинка.</value></data>
+
+  <!-- ── Регистрација ── -->
+  <data name="Reg_PageTitle" xml:space="preserve"><value>Регистрација – FastGeography</value></data>
+  <data name="Reg_Heading" xml:space="preserve"><value>Создај сметка</value></data>
+  <data name="Reg_DisplayName" xml:space="preserve"><value>Прикажано име</value></data>
+  <data name="Reg_Email" xml:space="preserve"><value>Е-пошта</value></data>
+  <data name="Reg_Password" xml:space="preserve"><value>Лозинка</value></data>
+  <data name="Reg_PasswordHint" xml:space="preserve"><value>(6+ знаци)</value></data>
+  <data name="Reg_DisplayNamePlaceholder" xml:space="preserve"><value>Истражувачко име</value></data>
+  <data name="Reg_Submit" xml:space="preserve"><value>Создај сметка</value></data>
+  <data name="Reg_Busy" xml:space="preserve"><value>Се создава сметка…</value></data>
+  <data name="Reg_HaveAccount" xml:space="preserve"><value>Веќе имате сметка?</value></data>
+  <data name="Reg_SignInLink" xml:space="preserve"><value>Најавете се</value></data>
+  <data name="Reg_Failed" xml:space="preserve"><value>Регистрацијата не успеа.</value></data>
+
+  <!-- ── Панел со приказни за дестинации ── -->
+  <data name="Stories_Heading" xml:space="preserve"><value>Ги отклучивте приказните за дестинации!</value></data>
+  <data name="Stories_Loading" xml:space="preserve"><value>Вчитување патни приказни…</value></data>
+
+  <!-- ── 404 ── -->
+  <data name="App_NotFound" xml:space="preserve"><value>Жал ни е, на оваа адреса нема ништо.</value></data>
+
+  <!-- ── Видови локации ── -->
+  <data name="Location_City" xml:space="preserve"><value>Град</value></data>
+  <data name="Location_Village" xml:space="preserve"><value>Село</value></data>
+  <data name="Location_Country" xml:space="preserve"><value>Држава</value></data>
+  <data name="Location_River" xml:space="preserve"><value>Река</value></data>
+  <data name="Location_Mountain" xml:space="preserve"><value>Планина</value></data>
+
+  <!-- ── Значки ── -->
+  <data name="Badge_Junior" xml:space="preserve"><value>Почетник</value></data>
+  <data name="Badge_Cadet" xml:space="preserve"><value>Кадет</value></data>
+  <data name="Badge_Explorer" xml:space="preserve"><value>Истражувач</value></data>
+  <data name="Badge_Traveller" xml:space="preserve"><value>Патник</value></data>
+  <data name="Badge_Jumper" xml:space="preserve"><value>Скокач</value></data>
+  <data name="Badge_EarthSurfer" xml:space="preserve"><value>Земски серфер</value></data>
+  <data name="Badge_EarthConqueror" xml:space="preserve"><value>Освојувач на Земјата</value></data>
+  <data name="Badge_SolarSpectre" xml:space="preserve"><value>Сончев спектар</value></data>
+  <data name="Badge_GalacticSurfer" xml:space="preserve"><value>Галактички серфер</value></data>
+  <data name="Badge_GalacticConqueror" xml:space="preserve"><value>Галактички освојувач</value></data>
+</root>

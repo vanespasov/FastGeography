@@ -1,7 +1,13 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject CookieAuthenticationStateProvider Auth
+@inject NavigationManager Nav
+@inject HttpClient Http
+@inject GameLanguageState Language
+@inject IStringLocalizer<UiStrings> L
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">FastGeography</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+        <button title="@L["Nav_NavigationMenu"]" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
@@ -9,41 +15,112 @@
 
 <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
     <nav class="flex-column">
-       @* <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="fastgeography" Match="NavLinkMatch.All">
+                <span class="oi oi-play-circle" aria-hidden="true"></span> @L["Nav_CasualPlay"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="oi oi-plus" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="ranked">
+                <span class="oi oi-star" aria-hidden="true"></span> @L["Nav_Ranked"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="todo">
-                <span class="oi oi-plus" aria-hidden="true"></span> To-Do
+            <NavLink class="nav-link" href="multiplayer">
+                <span class="oi oi-people" aria-hidden="true"></span> @L["Nav_Multiplayer"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fetchdata">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
-            </NavLink>
-        </div>*@
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fastgeography">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Fast Geography
+            <NavLink class="nav-link" href="scoreboard">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> @L["Nav_Scoreboard"]
             </NavLink>
         </div>
+        <hr class="border-secondary my-1" />
+
+        @* ── Language picker ── *@
+        <div class="nav-item px-3 py-1" @onclick:stopPropagation="true">
+            <div class="d-flex align-items-center gap-2">
+                <span class="oi oi-globe" aria-hidden="true" style="color:var(--bs-nav-link-color,rgba(255,255,255,.55))"></span>
+                <select class="form-select form-select-sm bg-transparent text-white border-secondary"
+                        style="width:auto"
+                        value="@_currentLang"
+                        @onchange="OnLanguageChanged"
+                        aria-label="@L["Nav_ChooseLanguage"]">
+                    <option value="en">English</option>
+                    <option value="mk">Македонски</option>
+                </select>
+            </div>
+        </div>
+        <hr class="border-secondary my-1" />
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <span class="nav-link text-light opacity-75">
+                        <span class="oi oi-person" aria-hidden="true"></span>
+                        @context.User.Identity?.Name
+                    </span>
+                </div>
+                <div class="nav-item px-3">
+                    <button class="nav-link btn btn-link text-start p-0" @onclick="Logout">
+                        <span class="oi oi-account-logout" aria-hidden="true"></span> @L["Nav_SignOut"]
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="login">
+                        <span class="oi oi-account-login" aria-hidden="true"></span> @L["Nav_SignIn"]
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="register">
+                        <span class="oi oi-plus" aria-hidden="true"></span> @L["Nav_Register"]
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </nav>
 </div>
 
 @code {
     private bool collapseNavMenu = true;
-
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private string _currentLang = "en";
 
-    private void ToggleNavMenu()
+    protected override async Task OnInitializedAsync()
     {
-        collapseNavMenu = !collapseNavMenu;
+        // Prefer the signed-in user's server-persisted preference; fall back to localStorage.
+        var user = Auth.CurrentUser;
+        if (user is not null)
+        {
+            await Language.SetAsync(user.PreferredLanguage);
+        }
+        else
+        {
+            await Language.EnsureLoadedAsync();
+        }
+        _currentLang = Language.Code;
+    }
+
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+
+    private async Task OnLanguageChanged(ChangeEventArgs e)
+    {
+        var lang = e.Value?.ToString() ?? "en";
+        await Language.SetAsync(lang);
+        _currentLang = Language.Code;
+
+        // Persist to the server when signed in.
+        if (Auth.CurrentUser is not null)
+        {
+            await Http.PatchAsJsonAsync("api/auth/language", new SetLanguageRequest(Language.Code));
+        }
+    }
+
+    private async Task Logout()
+    {
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("/");
     }
 }

@@ -1,0 +1,79 @@
+@page "/multiplayer"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IStringLocalizer<UiStrings> L
+
+<PageTitle>@L["Mp_PageTitle"]</PageTitle>
+
+<div class="container py-4" style="max-width:500px">
+    <h2>@L["Mp_Heading"]</h2>
+    <p class="text-muted">@L["Mp_Description"]</p>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">@L["Mp_CreateRoomTitle"]</h5>
+            <p class="card-text text-muted">@L["Mp_CreateRoomDesc"]</p>
+            <div class="mb-3">
+                <label class="form-label" for="langSelect">@L["Mp_GameLanguageLabel"]</label>
+                <select id="langSelect" class="form-select" @bind="_createLang">
+                    <option value="en">@L["Mp_LangOptionEn"]</option>
+                    <option value="mk">@L["Mp_LangOptionMk"]</option>
+                </select>
+            </div>
+            <button class="btn btn-success" @onclick="CreateRoom" disabled="@_busy">
+                @(_busy ? L["Mp_Creating"].Value : L["Mp_CreateRoom"].Value)
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">@L["Mp_JoinRoomTitle"]</h5>
+            <div class="input-group">
+                <input @bind="_joinCode" class="form-control" placeholder="@L["Mp_RoomCodePlaceholder"]"
+                       style="text-transform:uppercase" maxlength="6" />
+                <button class="btn btn-primary" @onclick="JoinRoom" disabled="@_busy">
+                    @L["Mp_Join"]
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _joinCode = string.Empty;
+    private string _createLang = "en";
+    private bool _busy;
+    private string? _error;
+
+    private async Task CreateRoom()
+    {
+        _busy = true;
+        _error = null;
+        var resp = await Http.PostAsync($"api/rooms?lang={_createLang}", null);
+        _busy = false;
+
+        if (resp.IsSuccessStatusCode)
+        {
+            var result = await resp.Content.ReadFromJsonAsync<CreateRoomResponse>();
+            if (result is not null)
+                Nav.NavigateTo($"/multiplayer/{result.RoomCode}");
+        }
+        else
+        {
+            _error = L["Mp_CreateError"];
+        }
+    }
+
+    private void JoinRoom()
+    {
+        if (string.IsNullOrWhiteSpace(_joinCode)) { _error = L["Mp_JoinCodeEmpty"]; return; }
+        Nav.NavigateTo($"/multiplayer/{_joinCode.Trim().ToUpperInvariant()}");
+    }
+}

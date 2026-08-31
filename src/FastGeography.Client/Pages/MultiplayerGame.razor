@@ -1,0 +1,416 @@
+@page "/multiplayer/{RoomCode}"
+@attribute [Authorize]
+@implements IAsyncDisposable
+@inject HttpClient Http
+@inject CookieAuthenticationStateProvider Auth
+@inject NavigationManager Nav
+@inject ILogger<MultiplayerGame> Logger
+@inject IStringLocalizer<UiStrings> L
+
+@using FastGeography.Shared
+@using FastGeography.Shared.Dtos
+
+<PageTitle>Room @RoomCode – FastGeography</PageTitle>
+
+<div class="game-container">
+
+    @* ── Header bar ── *@
+    <div class="d-flex align-items-center flex-wrap gap-3 mb-3">
+        <h4 class="mb-0">@L["MpGame_Room"] <code class="user-select-all">@RoomCode</code></h4>
+
+        <span class="badge bg-info text-dark" title="@L["Nav_ChooseLanguage"]">
+            @(_languageCode == "mk" ? L["MpGame_LangMk"].Value : L["MpGame_LangEn"].Value)
+        </span>
+
+        @if (_roundsCompleted > 0 || _roundActive)
+        {
+            <span class="badge bg-secondary fs-6">
+                @string.Format(L["MpGame_RoundOf"]!, _roundActive ? _roundNumber : _roundsCompleted, ScoringRules.SetSize)
+            </span>
+        }
+
+        @if (_mySetPoints > 0)
+        {
+            <span class="badge bg-primary fs-6">@string.Format(L["MpGame_SetTotal"]!, _mySetPoints)</span>
+        }
+
+        <div class="timer-container ms-auto" hidden="@(!_roundActive)">
+            <Countdown @ref="_countdown" TimerOut="OnTimerExpired" />
+        </div>
+
+        <button class="btn btn-outline-danger btn-sm" @onclick="LeaveRoom" disabled="@(!_connected)">
+            @L["MpGame_LeaveRoom"]
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger alert-dismissible">
+            @_error
+            <button class="btn-close" @onclick="() => _error = null"></button>
+        </div>
+    }
+
+    @* ── Players + controls ── *@
+    <div class="row g-3 mb-3">
+        <div class="col-auto">
+            <div class="card" style="min-width:160px">
+                <div class="card-body p-2">
+                    <div class="card-title small fw-bold text-muted mb-1">@L["MpGame_Players"]</div>
+                    @foreach (var p in _players)
+                    {
+                        <div class="d-flex align-items-center gap-1">
+                            @if (p == _hostName) { <span title="Host">&#x1F451;</span> }
+                            <span>@p</span>
+                            @if (_submittedNames.Contains(p)) { <span class="badge bg-success ms-auto">&#x2713;</span> }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-auto d-flex align-items-end gap-2">
+            @if (_isHost && !_roundActive && _connected && !_setComplete)
+            {
+                <button class="btn btn-success" @onclick="StartRound">@L["MpGame_StartRound"]</button>
+            }
+            @if (_isHost && _setComplete && !_roundActive && _connected)
+            {
+                <button class="btn btn-warning" @onclick="StartNewSet">@L["MpGame_PlayAnother"]</button>
+            }
+            @if (!_connected && !_connecting)
+            {
+                <span class="text-danger">
+                    @L["MpGame_Disconnected"]
+                    <button class="btn btn-sm btn-link" @onclick="Connect">@L["MpGame_Reconnect"]</button>
+                </span>
+            }
+        </div>
+    </div>
+
+    @* ── Personal answers table (casual-play style) ── *@
+    @if (_myRows.Count > 0 || _roundActive)
+    {
+        <table class="table" aria-label="@L["MpGame_YourAnswers"]">
+            <thead>
+                <tr>
+                    <th>@L["Col_Letter"]</th>
+                    <th>@L["Col_City"]</th>
+                    <th>@L["Col_Village"]</th>
+                    <th>@L["Col_Country"]</th>
+                    <th>@L["Col_River"]</th>
+                    <th>@L["Col_Mountain"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in _myRows)
+                {
+                    var g = ToGame(row);
+                    <GameRow Id="@g.Id"
+                             DatePlayed="@g.DatePlayed"
+                             Letter="@g.Letter"
+                             City="@g.City"
+                             Village="@g.Village"
+                             Country="@g.Country"
+                             River="@g.River"
+                             Mountain="@g.Mountain"
+                             IsFinished="true"
+                             SecondsPlayed="@g.SecondsPlayed"
+                             IsChecking="false"
+                             OnClick="@(_ => Task.CompletedTask)" />
+                }
+                @if (_roundActive && !_submitted)
+                {
+                    <tr>
+                        <td><strong>@_letter</strong></td>
+                        <td><input @bind="_city" class="form-control form-control-sm" /></td>
+                        <td><input @bind="_village" class="form-control form-control-sm" /></td>
+                        <td><input @bind="_country" class="form-control form-control-sm" /></td>
+                        <td><input @bind="_river" class="form-control form-control-sm" /></td>
+                        <td><input @bind="_mountain" class="form-control form-control-sm" /></td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" @onclick="SubmitAnswers">@L["MpGame_Check"]</button>
+                        </td>
+                    </tr>
+                }
+                @if (_roundActive && _submitted)
+                {
+                    <tr>
+                        <td><strong>@_letter</strong></td>
+                        <td colspan="5" class="text-muted fst-italic">@L["MpGame_WaitingPlayers"]</td>
+                        <td></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (_storyPlaces is { Count: > 0 })
+    {
+        <DestinationStories Places="@_storyPlaces" />
+    }
+
+    @if (_setComplete && _myRows.Count > 0)
+    {
+        <div class="alert alert-success">
+            <strong>@L["MpGame_SetComplete"]</strong> @string.Format(L["MpGame_SetCompleteDetail"]!, _mySetPoints, ScoringRules.SetSize)
+            @if (_isHost) { <span> @L["MpGame_PlayAnotherHint"]</span> }
+        </div>
+    }
+
+    @* ── All-player round results ── *@
+    @if (_results is not null)
+    {
+        <div class="mt-3">
+            <h5>@string.Format(L["MpGame_RoundResults"]!, _roundsCompleted)</h5>
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th><th>@L["Col_Player"]</th><th>@L["Col_Points"]</th>
+                        <th>@L["Col_City"]</th><th>@L["Col_Village"]</th><th>@L["Col_Country"]</th><th>@L["Col_River"]</th><th>@L["Col_Mountain"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _results.Results)
+                    {
+                        <tr class="@(r.Rank == 1 ? "table-warning" : "")">
+                            <td>@r.Rank</td>
+                            <td>@r.PlayerName</td>
+                            <td><strong>@r.TotalPoints</strong></td>
+                            @foreach (var d in r.Details)
+                            {
+                                <td class="@ScoringRules.CssRowClass(d.Points)">
+                                    @(string.IsNullOrEmpty(d.Answer) ? "–" : d.Answer)
+                                    <small class="d-block text-muted">@d.Points @L["MpGame_Pts"]</small>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string RoomCode { get; set; } = string.Empty;
+
+    private HubConnection? _hub;
+    private bool _connected, _connecting;
+    private bool _isHost;
+    private string _hostName = string.Empty;
+    private List<string> _players = [];
+    private HashSet<string> _submittedNames = [];
+
+    private bool _roundActive, _submitted;
+    private int _roundNumber;
+    private int _roundsCompleted;
+    private bool _setComplete;
+    private char _letter;
+    private Countdown _countdown = null!;
+
+    private string? _city, _village, _country, _river, _mountain;
+    private RoundResultsMessage? _results;
+    private string? _error;
+    private List<StoryRequest>? _storyPlaces;
+
+    private readonly List<CompletedRoundRow> _myRows = [];
+    private string _myDisplayName = string.Empty;
+    private string _languageCode = "en";
+    private int _mySetPoints => _myRows.Sum(r => r.Details.Sum(d => d.Points));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _myDisplayName = Auth.CurrentUser?.DisplayName ?? string.Empty;
+        await Connect();
+    }
+
+    private async Task Connect()
+    {
+        _connecting = true;
+        _hub = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hubs/game"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hub.On<RoomStateDto>("RoomJoined", state =>
+        {
+            _players = state.Players;
+            _hostName = state.HostName;
+            _roundActive = state.RoundActive;
+            _roundsCompleted = state.RoundsCompletedInSet;
+            _setComplete = state.SetComplete;
+            _languageCode = state.LanguageCode;
+            _myRows.Clear();
+            _myRows.AddRange(state.MyCompletedRounds);
+            _isHost = !string.IsNullOrEmpty(_myDisplayName) && state.HostName == _myDisplayName;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<string>("PlayerJoined", name =>
+        {
+            if (!_players.Contains(name)) _players.Add(name);
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<string>("PlayerLeft", name =>
+        {
+            _players.Remove(name);
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<string>("HostChanged", newHostName =>
+        {
+            _hostName = newHostName;
+            _isHost = !string.IsNullOrEmpty(_myDisplayName) && newHostName == _myDisplayName;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On("LeftRoom", () =>
+        {
+            InvokeAsync(() => Nav.NavigateTo("/multiplayer"));
+        });
+
+        _hub.On<RoundStartedMessage>("RoundStarted", msg =>
+        {
+            _letter = msg.Letter;
+            _city = _village = _country = _river = _mountain = string.Empty;
+            _roundActive = true;
+            _submitted = false;
+            _roundNumber = msg.RoundNumber;
+            _submittedNames.Clear();
+            var seconds = Math.Max(1, (int)(msg.EndsAt - DateTime.UtcNow).TotalSeconds);
+            InvokeAsync(() =>
+            {
+                _countdown?.Start(seconds);
+                StateHasChanged();
+            });
+        });
+
+        _hub.On("AnswersAccepted", () =>
+        {
+            _submitted = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<RoundResultsMessage>("RoundResults", results =>
+        {
+            _results = results;
+            _roundActive = false;
+            _submitted = false;
+            _roundsCompleted = results.RoundsCompletedInSet;
+            _setComplete = results.SetComplete;
+            _submittedNames = results.Results.Select(r => r.PlayerName).ToHashSet();
+
+            var myResult = results.Results.FirstOrDefault(r => r.PlayerName == _myDisplayName);
+            if (myResult is not null)
+            {
+                _myRows.Add(new CompletedRoundRow(_letter, myResult.Details));
+                _storyPlaces = myResult.Details
+                    .Where(d => d.Points == ScoringRules.ValidPoints && !string.IsNullOrWhiteSpace(d.Answer))
+                    .Select(d => new StoryRequest(d.Answer!, d.Type, d.Coordinates, _languageCode))
+                    .ToList();
+            }
+
+            InvokeAsync(() => { _countdown?.Stop(); StateHasChanged(); });
+        });
+
+        _hub.On("NewSetStarted", () =>
+        {
+            _myRows.Clear();
+            _storyPlaces = null;
+            _roundsCompleted = 0;
+            _setComplete = false;
+            _results = null;
+            _roundNumber = 0;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<string>("Error", msg =>
+        {
+            _error = msg;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.Reconnected += _ =>
+        {
+            InvokeAsync(async () => await _hub.SendAsync("JoinRoom", RoomCode));
+            return Task.CompletedTask;
+        };
+
+        try
+        {
+            await _hub.StartAsync();
+            _connected = true;
+            await _hub.SendAsync("JoinRoom", RoomCode);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to connect to game hub");
+            _error = L["MpGame_ConnectError"];
+        }
+        finally
+        {
+            _connecting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartRound()
+    {
+        if (_hub is null) return;
+        await _hub.SendAsync("StartRound", RoomCode);
+    }
+
+    private async Task StartNewSet()
+    {
+        if (_hub is null) return;
+        await _hub.SendAsync("StartNewSet", RoomCode);
+    }
+
+    private async Task LeaveRoom()
+    {
+        if (_hub is null) return;
+        await _hub.SendAsync("LeaveRoom", RoomCode);
+    }
+
+    private async Task OnTimerExpired() => await SubmitAnswers();
+
+    private async Task SubmitAnswers()
+    {
+        if (_hub is null || !_roundActive || _submitted) return;
+        var req = new SubmitAnswersRequest(_city, _village, _country, _river, _mountain, _languageCode);
+        await _hub.SendAsync("SubmitAnswers", RoomCode, req);
+    }
+
+    private static Game ToGame(CompletedRoundRow row)
+    {
+        static GameLocation Loc(List<LocationResult> d, LocationType t) => new()
+        {
+            LocationType = t,
+            Answer = d.FirstOrDefault(x => x.Type == t)?.Answer,
+            Points = d.FirstOrDefault(x => x.Type == t)?.Points ?? 0,
+            Coordinates = d.FirstOrDefault(x => x.Type == t)?.Coordinates,
+        };
+
+        return new Game
+        {
+            Id = Guid.NewGuid(),
+            DatePlayed = DateTime.Now,
+            Letter = row.Letter,
+            IsFinished = true,
+            City = Loc(row.Details, LocationType.City),
+            Village = Loc(row.Details, LocationType.Village),
+            Country = Loc(row.Details, LocationType.Country),
+            River = Loc(row.Details, LocationType.River),
+            Mountain = Loc(row.Details, LocationType.Mountain),
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+            await _hub.DisposeAsync();
+    }
+}

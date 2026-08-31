@@ -1,0 +1,106 @@
+@page "/scoreboard"
+@inject HttpClient Http
+@inject IStringLocalizer<UiStrings> L
+
+<PageTitle>@L["Sb_PageTitle"]</PageTitle>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <strong>@L["Sb_LoadError"]</strong> @_error
+    </div>
+}
+
+<div class="container-fluid py-3">
+    <h2>@L["Sb_Heading"]</h2>
+
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn @(_filter == "alltime" ? "btn-primary" : "btn-outline-primary")"
+                @onclick='() => LoadLeaderboard("alltime")'>@L["Sb_AllTime"]</button>
+        <button class="btn @(_filter == "week" ? "btn-primary" : "btn-outline-primary")"
+                @onclick='() => LoadLeaderboard("week")'>@L["Sb_ThisWeek"]</button>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="mb-3">
+                <a href="/scoreboard/me" class="btn btn-outline-secondary btn-sm">@L["Sb_MyStats"]</a>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    @if (_loading)
+    {
+        <div class="d-flex align-items-center gap-2">
+            <div class="spinner-border spinner-border-sm"></div>
+            <span>@L["Sb_Loading"]</span>
+        </div>
+    }
+    else if (_entries is null || !_entries.Any())
+    {
+        <p class="text-muted">@L["Sb_NoScores"]</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>@L["Sb_ColRank"]</th>
+                        <th>@L["Sb_ColExplorer"]</th>
+                        <th>@L["Sb_ColBadge"]</th>
+                        <th class="text-end">@L["Sb_ColPoints"]</th>
+                        <th class="text-end">@L["Sb_ColGames"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in _entries)
+                    {
+                        <tr class="@(e.Rank <= 3 ? "table-warning" : "")">
+                            <td>
+                                @if (e.Rank == 1) { <span>🥇</span> }
+                                else if (e.Rank == 2) { <span>🥈</span> }
+                                else if (e.Rank == 3) { <span>🥉</span> }
+                                else { <span class="text-muted">@e.Rank</span> }
+                            </td>
+                            <td><strong>@e.DisplayName</strong></td>
+                            <td><span class="badge bg-secondary">@L[$"Badge_{e.Badge}"]</span></td>
+                            <td class="text-end fw-bold">@e.CareerPoints</td>
+                            <td class="text-end">@e.GamesPlayed</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<LeaderboardEntry>? _entries;
+    private bool _loading = true;
+    private string _filter = "alltime";
+    private string? _error;
+
+    protected override async Task OnInitializedAsync() => await LoadLeaderboard("alltime");
+
+    private async Task LoadLeaderboard(string filter)
+    {
+        _filter = filter;
+        _loading = true;
+        _error = null;
+        _entries = null;
+        StateHasChanged();
+        try
+        {
+            _entries = await Http.GetFromJsonAsync<List<LeaderboardEntry>>($"api/leaderboard?filter={filter}");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

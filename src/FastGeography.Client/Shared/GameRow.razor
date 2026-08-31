@@ -1,54 +1,75 @@
-﻿@using FastGeography.Shared;
+@using FastGeography.Shared
+@inject IStringLocalizer<UiStrings> L
 
 <tr>
-    <td class="table-light"><input @bind-value=@game.Letter disabled="true" style="width:35px;" /></td>
-    <td class="@(game.SetCssClass(game.City.Points))">
-        <input disabled=@game.IsFinished @bind-value=@game.City.Answer />
+    <td class="table-light">
+        <input @bind-value=@game.Letter disabled="true" style="width:35px;"
+               aria-label="@L["GameRow_GameLetter"]" />
+    </td>
+    <td class="@(game.SetCssClass(game.City!.Points))">
+        <input disabled=@(game.IsFinished || IsChecking) @bind-value=@game.City.Answer
+               aria-label="@string.Format(L["GameRow_InputAriaLabel"]!, L["Location_City"].Value, game.Letter)" style="width:120px;" />
         @if (game.City.MapsUri != null)
         {
-            <a href="@game.City.MapsUri" target="_blank">
-                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            <a href="@game.City.MapsUri" target="_blank" rel="noopener noreferrer"
+               aria-label="@string.Format(L["GameRow_ViewOnMap"]!, game.City.Answer)">
+                <img src="images/visit.svg" alt="@L["GameRow_ViewOnMapAlt"]" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
     </td>
-    <td class="@(game.SetCssClass(game.Village.Points))">
-        <input disabled=@game.IsFinished @bind-value=@game.Village.Answer />
+    <td class="@(game.SetCssClass(game.Village!.Points))">
+        <input disabled=@(game.IsFinished || IsChecking) @bind-value=@game.Village.Answer
+               aria-label="@string.Format(L["GameRow_InputAriaLabel"]!, L["Location_Village"].Value, game.Letter)" style="width:120px;" />
         @if (game.Village.MapsUri != null)
         {
-            <a href="@game.Village.MapsUri" target="_blank">
-                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            <a href="@game.Village.MapsUri" target="_blank" rel="noopener noreferrer"
+               aria-label="@string.Format(L["GameRow_ViewOnMap"]!, game.Village.Answer)">
+                <img src="images/visit.svg" alt="@L["GameRow_ViewOnMapAlt"]" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
     </td>
-    <td class="@(game.SetCssClass(game.Country.Points))">
-        <input disabled=@game.IsFinished @bind-value=@game.Country.Answer />
+    <td class="@(game.SetCssClass(game.Country!.Points))">
+        <input disabled=@(game.IsFinished || IsChecking) @bind-value=@game.Country.Answer
+               aria-label="@string.Format(L["GameRow_InputAriaLabel"]!, L["Location_Country"].Value, game.Letter)" style="width:120px;" />
         @if (game.Country.MapsUri != null)
         {
-            <a href="@game.Country.MapsUri" target="_blank">
-                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            <a href="@game.Country.MapsUri" target="_blank" rel="noopener noreferrer"
+               aria-label="@string.Format(L["GameRow_ViewOnMap"]!, game.Country.Answer)">
+                <img src="images/visit.svg" alt="@L["GameRow_ViewOnMapAlt"]" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
     </td>
-    <td class="@(game.SetCssClass(game.River.Points))">
-        <input disabled=@game.IsFinished @bind-value=@game.River.Answer />
+    <td class="@(game.SetCssClass(game.River!.Points))">
+        <input disabled=@(game.IsFinished || IsChecking) @bind-value=@game.River.Answer
+               aria-label="@string.Format(L["GameRow_InputAriaLabel"]!, L["Location_River"].Value, game.Letter)" style="width:120px;" />
         @if (game.River.MapsUri != null)
         {
-            <a href="@game.River.MapsUri" target="_blank">
-                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            <a href="@game.River.MapsUri" target="_blank" rel="noopener noreferrer"
+               aria-label="@string.Format(L["GameRow_ViewOnMap"]!, game.River.Answer)">
+                <img src="images/visit.svg" alt="@L["GameRow_ViewOnMapAlt"]" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
     </td>
-    <td class="@(game.SetCssClass(game.Mountain.Points))">
-        <input disabled=@game.IsFinished @bind-value=@game.Mountain.Answer />
+    <td class="@(game.SetCssClass(game.Mountain!.Points))">
+        <input disabled=@(game.IsFinished || IsChecking) @bind-value=@game.Mountain.Answer
+               aria-label="@string.Format(L["GameRow_InputAriaLabel"]!, L["Location_Mountain"].Value, game.Letter)" style="width:120px;" />
         @if (game.Mountain.MapsUri != null)
         {
-            <a href="@game.Mountain.MapsUri" target="_blank">
-                <img src="images/visit.png" alt="Go to location" style="width:42px;height:42px;">
+            <a href="@game.Mountain.MapsUri" target="_blank" rel="noopener noreferrer"
+               aria-label="@string.Format(L["GameRow_ViewOnMap"]!, game.Mountain.Answer)">
+                <img src="images/visit.svg" alt="@L["GameRow_ViewOnMapAlt"]" style="width:32px;height:32px;margin-left:4px;" />
             </a>
         }
     </td>
     <td class="table-light">@game.SecondsPlayed</td>
-    <td class="table-light"><button @onclick="HandleClick" disabled=@game.IsFinished class="btn btn-primary">Check</button></td>
+    <td class="table-light">
+        <button @onclick="HandleClick"
+                disabled=@(game.IsFinished || IsChecking)
+                class="btn btn-primary"
+                aria-label="@string.Format(L["GameRow_CheckAriaLabel"]!, game.Letter)">
+            @L["GameRow_CheckButton"]
+        </button>
+    </td>
 </tr>
 
 @code {
@@ -62,29 +83,27 @@
     [Parameter] public GameLocation? Mountain { get; set; }
     [Parameter] public GameLocation? River { get; set; }
     [Parameter] public bool IsFinished { get; set; }
+    [Parameter] public bool IsChecking { get; set; }
     [Parameter] public int SecondsPlayed { get; set; }
 
-    Game game = new Game();
+    private Game game = new();
 
-    async Task HandleClick()
-    {
-        await OnClick.InvokeAsync(game);
-    }
+    private async Task HandleClick() => await OnClick.InvokeAsync(game);
 
     protected override void OnParametersSet()
     {
         game = new Game
-            {
-                Id = Id,
-                DatePlayed = DatePlayed,
-                Letter = Letter,
-                City = City,
-                Village = Village,
-                Country = Country,
-                Mountain = Mountain,
-                River = River,
-                IsFinished = IsFinished,
-                SecondsPlayed = SecondsPlayed
-            };
+        {
+            Id = Id,
+            DatePlayed = DatePlayed,
+            Letter = Letter,
+            City = City,
+            Village = Village,
+            Country = Country,
+            Mountain = Mountain,
+            River = River,
+            IsFinished = IsFinished,
+            SecondsPlayed = SecondsPlayed
+        };
     }
 }

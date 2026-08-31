@@ -1,0 +1,76 @@
+@inject HttpClient Http
+@inject IStringLocalizer<UiStrings> L
+@inject ILogger<DestinationStories> Logger
+
+@if (_loading)
+{
+    <div class="destination-stories mt-4" aria-live="polite">
+        <div class="d-flex align-items-center gap-2">
+            <div class="spinner-border spinner-border-sm text-success" aria-hidden="true"></div>
+            <span class="text-muted fst-italic">@L["Stories_Loading"]</span>
+        </div>
+    </div>
+}
+else if (_stories is { Count: > 0 })
+{
+    <div class="destination-stories mt-4">
+        <h5 class="stories-heading">
+            <span class="me-2">&#x1F30D;</span>@L["Stories_Heading"]
+        </h5>
+        <div class="row g-3">
+            @foreach (var s in _stories)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card story-card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title story-place-name">@s.Name</h6>
+                            <span class="badge bg-secondary mb-2">@L[$"Location_{s.Type}"]</span>
+                            <p class="card-text story-text">@s.Story</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public List<StoryRequest> Places { get; set; } = [];
+
+    private bool _loading;
+    private List<StoryResult>? _stories;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Places is null || Places.Count == 0)
+        {
+            _stories = null;
+            return;
+        }
+
+        _loading = true;
+        _stories = null;
+        StateHasChanged();
+
+        try
+        {
+            var body = new DestinationStoriesRequest(Places);
+            var resp = await Http.PostAsJsonAsync("api/destination-stories", body);
+            if (resp.IsSuccessStatusCode)
+            {
+                var data = await resp.Content.ReadFromJsonAsync<DestinationStoriesResponse>();
+                _stories = data?.Stories ?? [];
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not load destination stories");
+            _stories = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

@@ -1,29 +1,30 @@
 ﻿@using System.Timers;
 
-<div class="timer @(Time == "00:00" ? "timer-warning" : "")">
+<div class="timer @(Time == "00:00" ? "timer-warning" : "")"
+     role="timer"
+     aria-live="off"
+     aria-label="Time remaining: @Time">
     <div class="timer-circle">
-        <span class="timer-text">@Time</span>
-        <div class="timer-emoji">⏰</div>
+        <span class="timer-text" aria-hidden="true">@Time</span>
+        <div class="timer-emoji" aria-hidden="true">&#x23F0;</div>
     </div>
 </div>
 
 @code {
     private System.Timers.Timer _timer = null!;
     private int _secondsToRun = 0;
-    private int initialSeconds = 0;
+    private int _initialSeconds = 0;
 
-    protected string Time { get; set; } = "00:00";
+    protected string Time { get; set; } = "01:00";
 
     [Parameter]
     public EventCallback TimerOut { get; set; }
 
-    [Parameter]
-    public int SecondsToRun { get { return _secondsToRun; } set { } }
-    public int ElapsedSeconds { get { return initialSeconds - _secondsToRun; } }
+    public int ElapsedSeconds => _initialSeconds - _secondsToRun;
 
     public void Start(int secondsToRun)
     {
-        initialSeconds = secondsToRun;
+        _initialSeconds = secondsToRun;
         _secondsToRun = secondsToRun;
 
         if (_secondsToRun > 0)
@@ -52,14 +53,14 @@
 
         await InvokeAsync(() =>
         {
-            Time = TimeSpan.FromSeconds(_secondsToRun).ToString(@"mm\:ss");
+            Time = TimeSpan.FromSeconds(Math.Max(0, _secondsToRun)).ToString(@"mm\:ss");
             StateHasChanged();
         });
 
         if (_secondsToRun <= 0)
         {
             _timer.Stop();
-            await TimerOut.InvokeAsync();
+            await InvokeAsync(() => TimerOut.InvokeAsync());
         }
     }
 }
