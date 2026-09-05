@@ -1,6 +1,8 @@
 @inject HttpClient Http
+@inject GameLanguageState Language
 @inject IStringLocalizer<UiStrings> L
 @inject ILogger<DestinationStories> Logger
+@implements IDisposable
 
 @if (_loading)
 {
@@ -40,8 +42,19 @@ else if (_stories is { Count: > 0 })
 
     private bool _loading;
     private List<StoryResult>? _stories;
+    private int _loadId;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
+    {
+        await Language.EnsureLoadedAsync();
+        Language.Changed += OnLanguageChanged;
+    }
+
+    protected override async Task OnParametersSetAsync() => await LoadStoriesAsync();
+
+    private void OnLanguageChanged() => _ = InvokeAsync(LoadStoriesAsync);
+
+    private async Task LoadStoriesAsync()
     {
         if (Places is null || Places.Count == 0)
         {
@@ -49,14 +62,21 @@ else if (_stories is { Count: > 0 })
             return;
         }
 
+        var loadId = ++_loadId;
+        await Language.EnsureLoadedAsync();
+        var lang = Language.Code;
         _loading = true;
         _stories = null;
         StateHasChanged();
 
         try
         {
-            var body = new DestinationStoriesRequest(Places);
+            var places = Places.Select(p => p with { Lang = lang }).ToList();
+            var body = new DestinationStoriesRequest(places);
             var resp = await Http.PostAsJsonAsync("api/destination-stories", body);
+            if (loadId != _loadId)
+                return;
+
             if (resp.IsSuccessStatusCode)
             {
                 var data = await resp.Content.ReadFromJsonAsync<DestinationStoriesResponse>();
@@ -65,12 +85,17 @@ else if (_stories is { Count: > 0 })
         }
         catch (Exception ex)
         {
+            if (loadId != _loadId)
+                return;
             Logger.LogWarning(ex, "Could not load destination stories");
             _stories = null;
         }
         finally
         {
-            _loading = false;
+            if (loadId == _loadId)
+                _loading = false;
         }
     }
+
+    public void Dispose() => Language.Changed -= OnLanguageChanged;
 }

@@ -64,6 +64,26 @@ public sealed class DestinationStoriesTests : IClassFixture<TestAppFixture>
     }
 
     [Fact]
+    public async Task PostStories_UiLanguageDiffersFromToponymLanguage_StillReturnsStory()
+    {
+        await SeedToponymAsync("Skopje", LocationType.City, "en");
+
+        var client = _fixture.NewClient();
+        var request = new DestinationStoriesRequest(new List<StoryRequest>
+        {
+            new("Skopje", LocationType.City, "41.99,21.43", "mk")
+        });
+
+        var resp = await client.PostAsJsonAsync("/api/destination-stories", request);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var data = await resp.Content.ReadFromJsonAsync<DestinationStoriesResponse>();
+        Assert.NotNull(data);
+        Assert.Single(data!.Stories);
+        Assert.Contains("Mk", data.Stories[0].Story);
+    }
+
+    [Fact]
     public async Task PostStories_ForUnverifiedPlace_ReturnsEmpty()
     {
         var client = _fixture.NewClient();

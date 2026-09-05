@@ -52,16 +52,17 @@ public sealed class DestinationStoriesController : ControllerBase
             if (string.IsNullOrWhiteSpace(place.Name) || place.Name.Length > ScoringRules.MaxAnswerLength)
                 continue;
 
+            // Story language follows the UI picker (place.Lang), which may differ
+            // from the language the answer was verified in.
             var lang = GameLanguageExtensions.Parse(place.Lang);
             var normalized = place.Name.Trim().ToLowerInvariant();
 
             // Safety check: only generate stories for places that were already verified
-            // by the geocoding pipeline (a Toponym row exists).
+            // by the geocoding pipeline (a Toponym row exists in any language).
             var exists = await _db.Toponyms
                 .AnyAsync(
                     t => t.NormalizedName == normalized
-                         && t.Category == place.Type
-                         && t.LanguageCode == lang.ToCode(),
+                         && t.Category == place.Type,
                     ct);
 
             if (!exists)

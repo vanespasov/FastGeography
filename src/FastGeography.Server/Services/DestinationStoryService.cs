@@ -62,11 +62,10 @@ public sealed class DestinationStoryService : IDestinationStoryService
             ? $"unknown; coordinates {coordinates}"
             : "unknown location";
 
-        var language = lang == GameLanguage.Mk ? "Macedonian" : "English";
         var userPrompt = DestinationStoryPrompt.BuildUserPrompt(
-            place, type.ToString(), countryOrRegion, language);
+            place, type, countryOrRegion, lang);
 
-        var story = await _chat.CompleteAsync(DestinationStoryPrompt.System, userPrompt, ct);
+        var story = await _chat.CompleteAsync(DestinationStoryPrompt.System(lang), userPrompt, ct);
         if (string.IsNullOrWhiteSpace(story) || IsRefusal(story))
         {
             _logger.LogWarning("AI returned empty or refusal for {Place}/{Type}", place, type);
