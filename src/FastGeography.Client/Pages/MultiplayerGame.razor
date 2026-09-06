@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject CookieAuthenticationStateProvider Auth
 @inject NavigationManager Nav
+@inject ActiveMultiplayerRoomState ActiveRoom
 @inject ILogger<MultiplayerGame> Logger
 @inject IStringLocalizer<UiStrings> L
 
@@ -59,10 +60,11 @@
                     <div class="card-title small fw-bold text-muted mb-1">@L["MpGame_Players"]</div>
                     @foreach (var p in _players)
                     {
-                        <div class="d-flex align-items-center gap-1">
-                            @if (p == _hostName) { <span title="Host">&#x1F451;</span> }
-                            <span>@p</span>
-                            @if (_submittedNames.Contains(p)) { <span class="badge bg-success ms-auto">&#x2713;</span> }
+                        <div class="d-flex align-items-center gap-1 mb-1">
+                            <UserAvatar UserId="@p.UserId" DisplayName="@p.DisplayName" Size="sm" />
+                            @if (p.DisplayName == _hostName) { <span title="Host">&#x1F451;</span> }
+                            <span>@p.DisplayName</span>
+                            @if (_submittedNames.Contains(p.DisplayName)) { <span class="badge bg-success ms-auto">&#x2713;</span> }
                         </div>
                     }
                 </div>
@@ -91,64 +93,61 @@
     @* ── Personal answers table (casual-play style) ── *@
     @if (_myRows.Count > 0 || _roundActive)
     {
-        <table class="table" aria-label="@L["MpGame_YourAnswers"]">
-            <thead>
-                <tr>
-                    <th>@L["Col_Letter"]</th>
-                    <th>@L["Col_City"]</th>
-                    <th>@L["Col_Village"]</th>
-                    <th>@L["Col_Country"]</th>
-                    <th>@L["Col_River"]</th>
-                    <th>@L["Col_Mountain"]</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var row in _myRows)
-                {
-                    var g = ToGame(row);
-                    <GameRow Id="@g.Id"
-                             DatePlayed="@g.DatePlayed"
-                             Letter="@g.Letter"
-                             City="@g.City"
-                             Village="@g.Village"
-                             Country="@g.Country"
-                             River="@g.River"
-                             Mountain="@g.Mountain"
-                             IsFinished="true"
-                             SecondsPlayed="@g.SecondsPlayed"
-                             IsChecking="false"
-                             OnClick="@(_ => Task.CompletedTask)" />
-                }
-                @if (_roundActive && !_submitted)
-                {
+        <DestinationStories Places="@(_storyPlaces ?? [])">
+            <table class="table" aria-label="@L["MpGame_YourAnswers"]">
+                <thead>
                     <tr>
-                        <td><strong>@_letter</strong></td>
-                        <td><input @bind="_city" class="form-control form-control-sm" /></td>
-                        <td><input @bind="_village" class="form-control form-control-sm" /></td>
-                        <td><input @bind="_country" class="form-control form-control-sm" /></td>
-                        <td><input @bind="_river" class="form-control form-control-sm" /></td>
-                        <td><input @bind="_mountain" class="form-control form-control-sm" /></td>
-                        <td>
-                            <button class="btn btn-primary btn-sm" @onclick="SubmitAnswers">@L["MpGame_Check"]</button>
-                        </td>
+                        <th>@L["Col_Letter"]</th>
+                        <th>@L["Col_City"]</th>
+                        <th>@L["Col_Village"]</th>
+                        <th>@L["Col_Country"]</th>
+                        <th>@L["Col_River"]</th>
+                        <th>@L["Col_Mountain"]</th>
+                        <th>@L["Col_Check"]</th>
                     </tr>
-                }
-                @if (_roundActive && _submitted)
-                {
-                    <tr>
-                        <td><strong>@_letter</strong></td>
-                        <td colspan="5" class="text-muted fst-italic">@L["MpGame_WaitingPlayers"]</td>
-                        <td></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
-
-    @if (_storyPlaces is { Count: > 0 })
-    {
-        <DestinationStories Places="@_storyPlaces" />
+                </thead>
+                <tbody>
+                    @foreach (var row in _myRows)
+                    {
+                        var g = ToGame(row);
+                        <GameRow Id="@g.Id"
+                                 DatePlayed="@g.DatePlayed"
+                                 Letter="@g.Letter"
+                                 City="@g.City"
+                                 Village="@g.Village"
+                                 Country="@g.Country"
+                                 River="@g.River"
+                                 Mountain="@g.Mountain"
+                                 IsFinished="true"
+                                 SecondsPlayed="@g.SecondsPlayed"
+                                 IsChecking="false"
+                                 OnClick="@(_ => Task.CompletedTask)" />
+                    }
+                    @if (_roundActive && !_submitted)
+                    {
+                        <tr>
+                            <td><strong>@_letter</strong></td>
+                            <td><input @bind="_city" class="form-control form-control-sm" /></td>
+                            <td><input @bind="_village" class="form-control form-control-sm" /></td>
+                            <td><input @bind="_country" class="form-control form-control-sm" /></td>
+                            <td><input @bind="_river" class="form-control form-control-sm" /></td>
+                            <td><input @bind="_mountain" class="form-control form-control-sm" /></td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" @onclick="SubmitAnswers">@L["MpGame_Check"]</button>
+                            </td>
+                        </tr>
+                    }
+                    @if (_roundActive && _submitted)
+                    {
+                        <tr>
+                            <td><strong>@_letter</strong></td>
+                            <td colspan="5" class="text-muted fst-italic">@L["MpGame_WaitingPlayers"]</td>
+                            <td></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </DestinationStories>
     }
 
     @if (_setComplete && _myRows.Count > 0)
@@ -176,7 +175,12 @@
                     {
                         <tr class="@(r.Rank == 1 ? "table-warning" : "")">
                             <td>@r.Rank</td>
-                            <td>@r.PlayerName</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <UserAvatar UserId="@r.UserId" DisplayName="@r.PlayerName" Size="sm" />
+                                    @r.PlayerName
+                                </div>
+                            </td>
                             <td><strong>@r.TotalPoints</strong></td>
                             @foreach (var d in r.Details)
                             {
@@ -200,7 +204,7 @@
     private bool _connected, _connecting;
     private bool _isHost;
     private string _hostName = string.Empty;
-    private List<string> _players = [];
+    private List<RoomPlayerDto> _players = [];
     private HashSet<string> _submittedNames = [];
 
     private bool _roundActive, _submitted;
@@ -213,7 +217,7 @@
     private string? _city, _village, _country, _river, _mountain;
     private RoundResultsMessage? _results;
     private string? _error;
-    private List<StoryRequest>? _storyPlaces;
+    private List<StoryRequest> _storyPlaces = [];
 
     private readonly List<CompletedRoundRow> _myRows = [];
     private string _myDisplayName = string.Empty;
@@ -245,18 +249,23 @@
             _myRows.Clear();
             _myRows.AddRange(state.MyCompletedRounds);
             _isHost = !string.IsNullOrEmpty(_myDisplayName) && state.HostName == _myDisplayName;
-            InvokeAsync(StateHasChanged);
+            InvokeAsync(async () =>
+            {
+                await ActiveRoom.SetAsync(RoomCode);
+                StateHasChanged();
+            });
         });
 
-        _hub.On<string>("PlayerJoined", name =>
+        _hub.On<RoomPlayerDto>("PlayerJoined", player =>
         {
-            if (!_players.Contains(name)) _players.Add(name);
+            if (!_players.Any(p => p.UserId == player.UserId))
+                _players.Add(player);
             InvokeAsync(StateHasChanged);
         });
 
         _hub.On<string>("PlayerLeft", name =>
         {
-            _players.Remove(name);
+            _players.RemoveAll(p => p.DisplayName == name);
             InvokeAsync(StateHasChanged);
         });
 
@@ -269,7 +278,11 @@
 
         _hub.On("LeftRoom", () =>
         {
-            InvokeAsync(() => Nav.NavigateTo("/multiplayer"));
+            InvokeAsync(async () =>
+            {
+                await ActiveRoom.ClearAsync();
+                Nav.NavigateTo("/multiplayer");
+            });
         });
 
         _hub.On<RoundStartedMessage>("RoundStarted", msg =>
@@ -307,10 +320,11 @@
             if (myResult is not null)
             {
                 _myRows.Add(new CompletedRoundRow(_letter, myResult.Details));
-                _storyPlaces = myResult.Details
+                var newPlaces = myResult.Details
                     .Where(d => d.Points == ScoringRules.ValidPoints && !string.IsNullOrWhiteSpace(d.Answer))
                     .Select(d => new StoryRequest(d.Answer!, d.Type, d.Coordinates, _languageCode))
                     .ToList();
+                _storyPlaces = MergeStoryPlaces(_storyPlaces, newPlaces);
             }
 
             InvokeAsync(() => { _countdown?.Stop(); StateHasChanged(); });
@@ -319,7 +333,7 @@
         _hub.On("NewSetStarted", () =>
         {
             _myRows.Clear();
-            _storyPlaces = null;
+            _storyPlaces = [];
             _roundsCompleted = 0;
             _setComplete = false;
             _results = null;
@@ -330,7 +344,18 @@
         _hub.On<string>("Error", msg =>
         {
             _error = msg;
-            InvokeAsync(StateHasChanged);
+            if (msg.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            {
+                InvokeAsync(async () =>
+                {
+                    await ActiveRoom.ClearAsync();
+                    StateHasChanged();
+                });
+            }
+            else
+            {
+                InvokeAsync(StateHasChanged);
+            }
         });
 
         _hub.Reconnected += _ =>
@@ -406,6 +431,21 @@
             River = Loc(row.Details, LocationType.River),
             Mountain = Loc(row.Details, LocationType.Mountain),
         };
+    }
+
+    private static List<StoryRequest> MergeStoryPlaces(List<StoryRequest> existing, List<StoryRequest> newPlaces)
+    {
+        var merged = new List<StoryRequest>(existing);
+        foreach (var place in newPlaces)
+        {
+            if (!merged.Any(p =>
+                    p.Name.Equals(place.Name, StringComparison.OrdinalIgnoreCase) && p.Type == place.Type))
+            {
+                merged.Add(place);
+            }
+        }
+
+        return merged;
     }
 
     public async ValueTask DisposeAsync()

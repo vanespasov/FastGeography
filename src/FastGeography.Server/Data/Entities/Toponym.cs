@@ -33,9 +33,12 @@ public sealed class Toponym
     /// <summary>UTC timestamp when the provider confirmed the toponym.</summary>
     public DateTime VerifiedAtUtc { get; set; }
 
-    /// <summary>
-    /// Cached AI-generated travel micro-story (40–70 words). Null until first request.
-    /// Keyed by (NormalizedName, Category, LanguageCode) so each language gets its own story.
-    /// </summary>
-    public string? Story { get; set; }
+    /// <summary>Wikipedia or Wikimedia Commons thumbnail URL for this place.</summary>
+    public string? ImageUrl { get; set; }
+
+    /// <summary>Short attribution for <see cref="ImageUrl"/> (e.g. "Wikipedia").</summary>
+    public string? ImageAttribution { get; set; }
+
+    /// <summary>When an image lookup was last attempted (hit or miss).</summary>
+    public DateTime? ImageFetchedAtUtc { get; set; }
 }

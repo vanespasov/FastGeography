@@ -34,7 +34,8 @@ public sealed class OpenAiCompatibleChatClient : IChatCompletionClient
             [
                 new ChatMessage("system", systemPrompt),
                 new ChatMessage("user", userPrompt)
-            ]);
+            ],
+            0.9);
 
         try
         {
@@ -58,7 +59,8 @@ public sealed class OpenAiCompatibleChatClient : IChatCompletionClient
 
     private sealed record ChatRequest(
         [property: JsonPropertyName("model")] string Model,
-        [property: JsonPropertyName("messages")] ChatMessage[] Messages);
+        [property: JsonPropertyName("messages")] ChatMessage[] Messages,
+        [property: JsonPropertyName("temperature")] double Temperature);
 
     private sealed record ChatMessage(
         [property: JsonPropertyName("role")] string Role,

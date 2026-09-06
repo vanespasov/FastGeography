@@ -13,6 +13,7 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<GameRound> GameRounds => Set<GameRound>();
     public DbSet<RoundSubmission> RoundSubmissions => Set<RoundSubmission>();
     public DbSet<Toponym> Toponyms => Set<Toponym>();
+    public DbSet<ToponymStory> ToponymStories => Set<ToponymStory>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -52,10 +53,23 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(t => t.DisplayName).HasMaxLength(200);
             e.Property(t => t.LanguageCode).HasMaxLength(8).HasDefaultValue("en");
             e.Property(t => t.Provider).HasMaxLength(50);
+            e.Property(t => t.ImageUrl).HasMaxLength(500);
+            e.Property(t => t.ImageAttribution).HasMaxLength(100);
             // (NormalizedName, Category, LanguageCode) is the natural lookup key and must be
             // unique so concurrent inserts for the same verified answer + language don't create
             // duplicates.
             e.HasIndex(t => new { t.NormalizedName, t.Category, t.LanguageCode }).IsUnique();
+        });
+
+        builder.Entity<ToponymStory>(e =>
+        {
+            e.ToTable("ToponymStories");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.NormalizedName).HasMaxLength(200);
+            e.Property(s => s.LanguageCode).HasMaxLength(8);
+            e.Property(s => s.Body).HasMaxLength(600);
+            e.Property(s => s.Angle).HasMaxLength(32);
+            e.HasIndex(s => new { s.NormalizedName, s.Category, s.LanguageCode });
         });
     }
 }

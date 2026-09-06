@@ -3,7 +3,7 @@ namespace FastGeography.Server.Services;
 using FastGeography.Shared;
 
 /// <summary>
-/// Generates (or retrieves from cache) a short destination story for a verified place.
+/// Generates or retrieves a short destination story for a verified place from a per-place pool.
 /// </summary>
 public interface IDestinationStoryService
 {

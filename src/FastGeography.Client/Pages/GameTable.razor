@@ -20,6 +20,19 @@
         <div class="timer-container" role="timer" aria-label="@L["Game_Countdown"]">
             <Countdown @ref="countdown" TimerOut="OnTimerExpired" />
         </div>
+        @if (isChecking)
+        {
+            <div class="game-header-status" role="status" aria-live="polite">
+                <div class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></div>
+                <span>@L["Game_CheckingAnswers"]</span>
+            </div>
+        }
+        @if (games.Any())
+        {
+            <div class="game-header-score" aria-live="polite" aria-atomic="true">
+                <label>@string.Format(L["Game_TotalPoints"]!, totalPoints)</label>
+            </div>
+        }
     </div>
 
     @if (!string.IsNullOrEmpty(errorMessage))
@@ -30,72 +43,58 @@
         </div>
     }
 
-    @if (isChecking)
-    {
-        <div class="d-flex align-items-center gap-2 my-2" role="status" aria-live="polite">
-            <div class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></div>
-            <span>@L["Game_CheckingAnswers"]</span>
-        </div>
-    }
-
     @if (!games.Any())
     {
         <p><em>@L["Game_NoGameStarted"]</em></p>
     }
 
-    @if (_storyPlaces is not null)
-    {
-        <DestinationStories Places="@_storyPlaces" />
-    }
-
     @if (games.Any())
     {
-        <div aria-live="polite" aria-atomic="true">
-            <label>@string.Format(L["Game_TotalPoints"]!, totalPoints)</label>
-        </div>
+        <DestinationStories Places="@_storyPlaces">
+            <table class="table" aria-label="@L["Game_AnswersTable"]">
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Col_Letter"]</th>
+                        <th scope="col">@L["Col_City"]</th>
+                        <th scope="col">@L["Col_Village"]</th>
+                        <th scope="col">@L["Col_Country"]</th>
+                        <th scope="col">@L["Col_River"]</th>
+                        <th scope="col">@L["Col_Mountain"]</th>
+                        <th scope="col">@L["Col_Check"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var game in games)
+                    {
+                        <GameRow Id=@game.Value.Id
+                                 DatePlayed=@game.Value.DatePlayed
+                                 Letter=@game.Value.Letter
+                                 City=@game.Value.City
+                                 Village=@game.Value.Village
+                                 Country=@game.Value.Country
+                                 River=@game.Value.River
+                                 Mountain=@game.Value.Mountain
+                                 IsFinished=@game.Value.IsFinished
+                                 SecondsPlayed=@game.Value.SecondsPlayed
+                                 IsChecking=@isChecking
+                                 OnClick=@CheckAnswers />
+                    }
+                </tbody>
+            </table>
+        </DestinationStories>
 
         @if (totalPoints > ScoringRules.AchievementThreshold)
         {
             var badge = BadgeCalculator.Calculate(totalPoints);
             var badgeName = L[$"Badge_{badge}"].Value;
             <div class="achievement-banner" role="status" aria-live="polite">
-                <h3>@encourageMessage</h3>
-                <h3>@string.Format(L["Game_AmazingExplorer"]!, badgeName)</h3>
+                <div class="achievement-banner-text">
+                    <h3>@encourageMessage</h3>
+                    <h3>@string.Format(L["Game_AmazingExplorer"]!, badgeName)</h3>
+                </div>
                 <img src=@GetBadgeImagePath(totalPoints) class="badge-image" alt="@badgeName" />
             </div>
         }
-
-        <table class="table" aria-label="@L["Game_AnswersTable"]">
-            <thead>
-                <tr>
-                    <th scope="col">@L["Col_Letter"]</th>
-                    <th scope="col">@L["Col_City"]</th>
-                    <th scope="col">@L["Col_Village"]</th>
-                    <th scope="col">@L["Col_Country"]</th>
-                    <th scope="col">@L["Col_River"]</th>
-                    <th scope="col">@L["Col_Mountain"]</th>
-                    <th scope="col">@L["Col_TimeSec"]</th>
-                    <th scope="col">@L["Col_Action"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var game in games)
-                {
-                    <GameRow Id=@game.Value.Id
-                             DatePlayed=@game.Value.DatePlayed
-                             Letter=@game.Value.Letter
-                             City=@game.Value.City
-                             Village=@game.Value.Village
-                             Country=@game.Value.Country
-                             River=@game.Value.River
-                             Mountain=@game.Value.Mountain
-                             IsFinished=@game.Value.IsFinished
-                             SecondsPlayed=@game.Value.SecondsPlayed
-                             IsChecking=@isChecking
-                             OnClick=@CheckAnswers />
-                }
-            </tbody>
-        </table>
     }
 </div>
 
@@ -108,7 +107,7 @@
     private bool isChecking = false;
     private Countdown countdown = null!;
     private string _langCode = "en";
-    private List<StoryRequest>? _storyPlaces;
+    private List<StoryRequest> _storyPlaces = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -190,7 +189,7 @@
         totalPoints += game.TotalPoints;
         encourageMessage = GetEncouragingMessage(game.TotalPoints);
 
-        _storyPlaces = BuildStoryRequests(game);
+        _storyPlaces = MergeStoryPlaces(_storyPlaces, BuildStoryRequests(game));
 
         games.Remove(game.Id);
         games.Add(game.Id, game);
@@ -223,6 +222,21 @@
             errorMessage = L["Game_ValidationError"];
             return ScoringRules.EmptyPoints;
         }
+    }
+
+    private static List<StoryRequest> MergeStoryPlaces(List<StoryRequest> existing, List<StoryRequest> newPlaces)
+    {
+        var merged = new List<StoryRequest>(existing);
+        foreach (var place in newPlaces)
+        {
+            if (!merged.Any(p =>
+                    p.Name.Equals(place.Name, StringComparison.OrdinalIgnoreCase) && p.Type == place.Type))
+            {
+                merged.Add(place);
+            }
+        }
+
+        return merged;
     }
 
     private List<StoryRequest> BuildStoryRequests(Game game)

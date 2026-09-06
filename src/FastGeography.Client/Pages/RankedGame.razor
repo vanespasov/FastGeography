@@ -10,7 +10,7 @@
 
 <div class="game-container">
     <div class="game-header">
-        <div>
+        <div class="game-header-title">
             <h4>@L["Ranked_Heading"]</h4>
             <small class="text-muted">@L["Ranked_Subtitle"]</small>
         </div>
@@ -19,10 +19,14 @@
                 disabled="@(_roundActive || _checking)">
             <i class="oi oi-play-circle" aria-hidden="true"></i> @L["Ranked_StartRound"]
         </button>
-        @if (_roundActive)
+        <div class="timer-container" hidden="@(!_roundActive)">
+            <Countdown @ref="_countdown" TimerOut="OnTimerExpired" />
+        </div>
+        @if (_checking)
         {
-            <div class="timer-container">
-                <Countdown @ref="_countdown" TimerOut="OnTimerExpired" />
+            <div class="game-header-status" role="status" aria-live="polite">
+                <div class="spinner-border spinner-border-sm text-success" aria-hidden="true"></div>
+                <span>@L["Ranked_Submitting"]</span>
             </div>
         }
     </div>
@@ -35,14 +39,6 @@
         </div>
     }
 
-    @if (_checking)
-    {
-        <div class="d-flex align-items-center gap-2 my-2" role="status">
-            <div class="spinner-border spinner-border-sm text-success"></div>
-            <span>@L["Ranked_Submitting"]</span>
-        </div>
-    }
-
     @if (_result is not null)
     {
         <div class="alert alert-success mt-3">
@@ -50,23 +46,28 @@
             @L["Ranked_Badge"] <strong>@L[$"Badge_{_result.Badge}"]</strong>
             <a href="/scoreboard" class="ms-2">@L["Ranked_ViewScoreboard"]</a>
         </div>
-        <table class="table table-sm mt-2">
-            <thead><tr><th>@L["Col_Category"]</th><th>@L["Col_Answer"]</th><th>@L["Col_Points"]</th></tr></thead>
-            <tbody>
-                @foreach (var d in _result.Details)
-                {
-                    <tr class="@ScoringRules.CssRowClass(d.Points)">
-                        <td>@L[$"Location_{d.Type}"]</td>
-                        <td>@(string.IsNullOrEmpty(d.Answer) ? "–" : d.Answer)</td>
-                        <td>@d.Points</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        @if (_storyPlaces is { Count: > 0 })
-        {
-            <DestinationStories Places="@_storyPlaces" />
-        }
+        <DestinationStories Places="@(_storyPlaces ?? [])">
+            <table class="table table-sm mt-2">
+                <thead><tr><th>@L["Col_Category"]</th><th>@L["Col_Answer"]</th><th>@L["Col_Points"]</th></tr></thead>
+                <tbody>
+                    @foreach (var d in _result.Details)
+                    {
+                        var location = ToGameLocation(d);
+                        <tr class="@ScoringRules.CssRowClass(d.Points)">
+                            <td>@L[$"Location_{d.Type}"]</td>
+                            <td class="answer-cell">
+                                @(string.IsNullOrEmpty(d.Answer) ? "–" : d.Answer)
+                                @if (!string.IsNullOrEmpty(d.Answer))
+                                {
+                                    <AnswerActions Location="location" Answer="d.Answer" MapsUri="location.MapsUri" />
+                                }
+                            </td>
+                            <td>@d.Points</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </DestinationStories>
     }
 
     @if (_roundActive && _roundId.HasValue)
@@ -114,13 +115,13 @@
     private SoloSubmitResponse? _result;
 
     private string? _city, _village, _country, _river, _mountain;
-    private List<StoryRequest>? _storyPlaces;
+    private List<StoryRequest> _storyPlaces = [];
 
     private async Task StartRound()
     {
         _error = null;
         _result = null;
-        _storyPlaces = null;
+        _storyPlaces = [];
 
         await Language.EnsureLoadedAsync();
         _languageCode = Language.Code;
@@ -168,7 +169,7 @@
                 _storyPlaces = _result?.Details
                     .Where(d => d.Points == ScoringRules.ValidPoints && !string.IsNullOrWhiteSpace(d.Answer))
                     .Select(d => new StoryRequest(d.Answer!, d.Type, d.Coordinates, _languageCode))
-                    .ToList();
+                    .ToList() ?? [];
             }
             else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -193,4 +194,12 @@
             _checking = false;
         }
     }
+
+    private static GameLocation ToGameLocation(LocationResult detail) => new()
+    {
+        LocationType = detail.Type,
+        Answer = detail.Answer,
+        Points = detail.Points,
+        Coordinates = detail.Coordinates
+    };
 }

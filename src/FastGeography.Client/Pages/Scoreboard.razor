@@ -63,7 +63,12 @@
                                 else if (e.Rank == 3) { <span>🥉</span> }
                                 else { <span class="text-muted">@e.Rank</span> }
                             </td>
-                            <td><strong>@e.DisplayName</strong></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <UserAvatar UserId="@e.UserId" DisplayName="@e.DisplayName" Size="sm" />
+                                    <strong>@e.DisplayName</strong>
+                                </div>
+                            </td>
                             <td><span class="badge bg-secondary">@L[$"Badge_{e.Badge}"]</span></td>
                             <td class="text-end fw-bold">@e.CareerPoints</td>
                             <td class="text-end">@e.GamesPlayed</td>

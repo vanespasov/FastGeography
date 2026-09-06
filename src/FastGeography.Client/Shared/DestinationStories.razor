@@ -1,48 +1,21 @@
 @inject HttpClient Http
 @inject GameLanguageState Language
-@inject IStringLocalizer<UiStrings> L
 @inject ILogger<DestinationStories> Logger
 @implements IDisposable
 
-@if (_loading)
-{
-    <div class="destination-stories mt-4" aria-live="polite">
-        <div class="d-flex align-items-center gap-2">
-            <div class="spinner-border spinner-border-sm text-success" aria-hidden="true"></div>
-            <span class="text-muted fst-italic">@L["Stories_Loading"]</span>
-        </div>
-    </div>
-}
-else if (_stories is { Count: > 0 })
-{
-    <div class="destination-stories mt-4">
-        <h5 class="stories-heading">
-            <span class="me-2">&#x1F30D;</span>@L["Stories_Heading"]
-        </h5>
-        <div class="row g-3">
-            @foreach (var s in _stories)
-            {
-                <div class="col-12 col-md-6 col-lg-4">
-                    <div class="card story-card h-100 shadow-sm">
-                        <div class="card-body">
-                            <h6 class="card-title story-place-name">@s.Name</h6>
-                            <span class="badge bg-secondary mb-2">@L[$"Location_{s.Type}"]</span>
-                            <p class="card-text story-text">@s.Story</p>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-}
+<CascadingValue Value="_context" IsFixed="false">
+    @ChildContent
+</CascadingValue>
 
 @code {
-    [Parameter, EditorRequired]
-    public List<StoryRequest> Places { get; set; } = [];
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private bool _loading;
-    private List<StoryResult>? _stories;
+    [Parameter]
+    public List<StoryRequest>? Places { get; set; }
+
+    private DestinationStoriesContext _context = new(null);
     private int _loadId;
+    private readonly Dictionary<(string Name, LocationType Type), DestinationStoryEntry> _stories = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,35 +25,69 @@ else if (_stories is { Count: > 0 })
 
     protected override async Task OnParametersSetAsync() => await LoadStoriesAsync();
 
-    private void OnLanguageChanged() => _ = InvokeAsync(LoadStoriesAsync);
+    private void OnLanguageChanged()
+    {
+        _stories.Clear();
+        _ = InvokeAsync(LoadStoriesAsync);
+    }
 
     private async Task LoadStoriesAsync()
     {
         if (Places is null || Places.Count == 0)
         {
-            _stories = null;
+            _stories.Clear();
+            _context = new DestinationStoriesContext(null);
             return;
         }
 
-        var loadId = ++_loadId;
         await Language.EnsureLoadedAsync();
         var lang = Language.Code;
-        _loading = true;
-        _stories = null;
-        StateHasChanged();
+        var places = Places.Select(p => p with { Lang = lang }).ToList();
+        var pending = places
+            .Where(p => !_stories.ContainsKey(StoryKey(p)))
+            .ToList();
+
+        if (pending.Count == 0)
+        {
+            PublishContext();
+            return;
+        }
+
+        const int maxBatch = 10;
+        var loadId = ++_loadId;
+        var pendingKeys = pending.Select(p => (p.Name, p.Type)).ToList();
+        PublishContext(pendingKeys);
+        await InvokeAsync(StateHasChanged);
 
         try
         {
-            var places = Places.Select(p => p with { Lang = lang }).ToList();
-            var body = new DestinationStoriesRequest(places);
-            var resp = await Http.PostAsJsonAsync("api/destination-stories", body);
-            if (loadId != _loadId)
-                return;
-
-            if (resp.IsSuccessStatusCode)
+            foreach (var batch in pending.Chunk(maxBatch))
             {
+                if (loadId != _loadId)
+                    return;
+
+                var body = new DestinationStoriesRequest(batch.ToList());
+                var resp = await Http.PostAsJsonAsync("api/destination-stories", body);
+                if (loadId != _loadId)
+                    return;
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    Logger.LogWarning(
+                        "Destination stories request failed with {StatusCode}",
+                        (int)resp.StatusCode);
+                    continue;
+                }
+
                 var data = await resp.Content.ReadFromJsonAsync<DestinationStoriesResponse>();
-                _stories = data?.Stories ?? [];
+                var results = data?.Stories ?? [];
+                foreach (var result in results)
+                {
+                    _stories[StoryKey(result.Name, result.Type)] = new DestinationStoryEntry(
+                        result.Story,
+                        result.ImageUrl,
+                        result.ImageAttribution);
+                }
             }
         }
         catch (Exception ex)
@@ -88,14 +95,28 @@ else if (_stories is { Count: > 0 })
             if (loadId != _loadId)
                 return;
             Logger.LogWarning(ex, "Could not load destination stories");
-            _stories = null;
         }
-        finally
-        {
-            if (loadId == _loadId)
-                _loading = false;
-        }
+
+        if (loadId != _loadId)
+            return;
+
+        PublishContext();
+        await InvokeAsync(StateHasChanged);
     }
+
+    private void PublishContext(IReadOnlyList<(string Name, LocationType Type)>? pendingKeys = null)
+    {
+        var stories = _stories
+            .Select(kv => (kv.Key.Name, kv.Key.Type, kv.Value.Story, kv.Value.ImageUrl, kv.Value.ImageAttribution))
+            .ToList();
+        _context = new DestinationStoriesContext(stories, pendingKeys);
+    }
+
+    private static (string Name, LocationType Type) StoryKey(StoryRequest place) =>
+        StoryKey(place.Name, place.Type);
+
+    private static (string Name, LocationType Type) StoryKey(string name, LocationType type) =>
+        (name.Trim().ToLowerInvariant(), type);
 
     public void Dispose() => Language.Changed -= OnLanguageChanged;
 }

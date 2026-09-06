@@ -36,6 +36,7 @@
   <data name="Nav_CasualPlay" xml:space="preserve"><value>Casual Play</value></data>
   <data name="Nav_Ranked" xml:space="preserve"><value>Ranked</value></data>
   <data name="Nav_Multiplayer" xml:space="preserve"><value>Multiplayer</value></data>
+  <data name="Nav_ReturnToRoom" xml:space="preserve"><value>Return to room {0}</value></data>
   <data name="Nav_Scoreboard" xml:space="preserve"><value>Scoreboard</value></data>
   <data name="Nav_SignIn" xml:space="preserve"><value>Sign In</value></data>
   <data name="Nav_Register" xml:space="preserve"><value>Register</value></data>
@@ -67,6 +68,7 @@
   <data name="Col_Country" xml:space="preserve"><value>Country</value></data>
   <data name="Col_River" xml:space="preserve"><value>River</value></data>
   <data name="Col_Mountain" xml:space="preserve"><value>Mountain</value></data>
+  <data name="Col_Check" xml:space="preserve"><value>Check</value></data>
   <data name="Col_TimeSec" xml:space="preserve"><value>Time (s)</value></data>
   <data name="Col_Action" xml:space="preserve"><value>Action</value></data>
   <data name="Col_Category" xml:space="preserve"><value>Category</value></data>
@@ -80,7 +82,9 @@
   <data name="GameRow_ViewOnMap" xml:space="preserve"><value>View {0} on map</value></data>
   <data name="GameRow_ViewOnMapAlt" xml:space="preserve"><value>View on map</value></data>
   <data name="GameRow_CheckButton" xml:space="preserve"><value>Check</value></data>
+  <data name="GameRow_CheckedButton" xml:space="preserve"><value>Checked ({0}s)</value></data>
   <data name="GameRow_CheckAriaLabel" xml:space="preserve"><value>Check answers for letter {0}</value></data>
+  <data name="GameRow_CheckedAriaLabel" xml:space="preserve"><value>Checked answers for letter {0} in {1} seconds</value></data>
 
   <!-- ── Ranked Game ── -->
   <data name="Ranked_PageTitle" xml:space="preserve"><value>Ranked Play – FastGeography</value></data>
@@ -117,6 +121,9 @@
   <data name="Mp_Join" xml:space="preserve"><value>Join</value></data>
   <data name="Mp_CreateError" xml:space="preserve"><value>Could not create a room. Please try again.</value></data>
   <data name="Mp_JoinCodeEmpty" xml:space="preserve"><value>Enter a room code.</value></data>
+  <data name="Mp_ReturnToRoom" xml:space="preserve"><value>Return to room {0}</value></data>
+  <data name="Mp_ReturnToRoomDesc" xml:space="preserve"><value>You left room {0}. Rejoin to continue with your friends.</value></data>
+  <data name="Mp_ReturnToRoomDismiss" xml:space="preserve"><value>Dismiss</value></data>
 
   <!-- ── Multiplayer Game ── -->
   <data name="MpGame_Room" xml:space="preserve"><value>Room:</value></data>
@@ -154,6 +161,18 @@
   <data name="Sb_ColBadge" xml:space="preserve"><value>Badge</value></data>
   <data name="Sb_ColPoints" xml:space="preserve"><value>Points</value></data>
   <data name="Sb_ColGames" xml:space="preserve"><value>Games</value></data>
+  <data name="Sb_Me_PageTitle" xml:space="preserve"><value>My Stats – FastGeography</value></data>
+  <data name="Sb_Me_Heading" xml:space="preserve"><value>My Stats</value></data>
+  <data name="Sb_Me_BackToScoreboard" xml:space="preserve"><value>Back to scoreboard</value></data>
+  <data name="Sb_Me_GlobalRank" xml:space="preserve"><value>Global rank</value></data>
+  <data name="Sb_Me_GamesSummary" xml:space="preserve"><value>{0} ranked games played.</value></data>
+  <data name="Sb_Me_RecentRounds" xml:space="preserve"><value>Recent rounds</value></data>
+  <data name="Sb_Me_NoRounds" xml:space="preserve"><value>No ranked rounds yet. Play a ranked round to see your history here.</value></data>
+  <data name="Sb_Me_ColPlayedAt" xml:space="preserve"><value>Played</value></data>
+  <data name="Sb_Me_ColMode" xml:space="preserve"><value>Mode</value></data>
+  <data name="Sb_Me_ModeRanked" xml:space="preserve"><value>Ranked</value></data>
+  <data name="Sb_Me_ModeMultiplayer" xml:space="preserve"><value>Multiplayer</value></data>
+  <data name="Sb_Me_ProfileNotFound" xml:space="preserve"><value>Player profile not found.</value></data>
 
   <!-- ── Login ── -->
   <data name="Login_PageTitle" xml:space="preserve"><value>Login – FastGeography</value></data>
@@ -180,9 +199,13 @@
   <data name="Reg_SignInLink" xml:space="preserve"><value>Sign in</value></data>
   <data name="Reg_Failed" xml:space="preserve"><value>Registration failed.</value></data>
 
-  <!-- ── Destination Stories reward panel ── -->
-  <data name="Stories_Heading" xml:space="preserve"><value>You unlocked destination stories!</value></data>
+  <!-- ── Destination story popovers ── -->
   <data name="Stories_Loading" xml:space="preserve"><value>Loading travel stories…</value></data>
+  <data name="Stories_ReadStory" xml:space="preserve"><value>Read travel story for {0}</value></data>
+  <data name="Stories_Close" xml:space="preserve"><value>Close story</value></data>
+  <data name="Stories_PlacePhoto" xml:space="preserve"><value>Photo of {0}</value></data>
+  <data name="Stories_PlaceStamp" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Stories_ViaSource" xml:space="preserve"><value>via {0}</value></data>
 
   <!-- ── 404 / App ── -->
   <data name="App_NotFound" xml:space="preserve"><value>Sorry, there's nothing at this address.</value></data>

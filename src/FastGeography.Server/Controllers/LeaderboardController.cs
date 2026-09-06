@@ -47,12 +47,19 @@ public class LeaderboardController : ControllerBase
         }
         else
         {
-            raw = await _db.PlayerProfiles
-                .Select(p => new ValueTuple<string, int, int>(p.UserId, p.CareerPoints, p.GamesPlayed))
-                .OrderByDescending(x => x.Item2)
+            var profiles = await _db.PlayerProfiles
+                .OrderByDescending(p => p.CareerPoints)
                 .Take(25)
+                .Select(p => new { p.UserId, p.CareerPoints, p.GamesPlayed })
                 .ToListAsync();
+
+            raw = profiles
+                .Select(p => (p.UserId, p.CareerPoints, p.GamesPlayed))
+                .ToList();
         }
+
+        if (raw.Count == 0)
+            return Ok(Array.Empty<LeaderboardEntry>());
 
         var userIds = raw.Select(r => r.Item1).ToList();
         var displayNames = await _db.Users
@@ -61,6 +68,7 @@ public class LeaderboardController : ControllerBase
 
         var entries = raw.Select((r, i) => new LeaderboardEntry(
             Rank: i + 1,
+            UserId: r.Item1,
             DisplayName: displayNames.TryGetValue(r.Item1, out var n) ? n : "Unknown",
             CareerPoints: r.Item2,
             Badge: BadgeCalculator.Calculate(r.Item2).ToString(),
@@ -98,6 +106,7 @@ public class LeaderboardController : ControllerBase
             .ToListAsync();
 
         return Ok(new PlayerStats(
+            userId,
             rank,
             user.DisplayName,
             profile.CareerPoints,

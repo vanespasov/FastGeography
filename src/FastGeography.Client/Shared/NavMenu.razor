@@ -1,7 +1,9 @@
-﻿@inject CookieAuthenticationStateProvider Auth
+﻿@implements IDisposable
+@inject CookieAuthenticationStateProvider Auth
 @inject NavigationManager Nav
 @inject HttpClient Http
 @inject GameLanguageState Language
+@inject ActiveMultiplayerRoomState ActiveRoom
 @inject IStringLocalizer<UiStrings> L
 
 <div class="top-row ps-3 navbar navbar-dark">
@@ -30,6 +32,15 @@
                 <span class="oi oi-people" aria-hidden="true"></span> @L["Nav_Multiplayer"]
             </NavLink>
         </div>
+        @if (_returnRoomCode is not null)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link text-warning" href="@($"multiplayer/{_returnRoomCode}")">
+                    <span class="oi oi-action-undo" aria-hidden="true"></span>
+                    @string.Format(L["Nav_ReturnToRoom"]!, _returnRoomCode)
+                </NavLink>
+            </div>
+        }
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="scoreboard">
                 <span class="oi oi-list-rich" aria-hidden="true"></span> @L["Nav_Scoreboard"]
@@ -54,11 +65,15 @@
         <hr class="border-secondary my-1" />
 
         <AuthorizeView>
-            <Authorized>
+            <Authorized Context="authContext">
+                @{
+                    var userId = authContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    var displayName = authContext.User.Identity?.Name;
+                }
                 <div class="nav-item px-3">
-                    <span class="nav-link text-light opacity-75">
-                        <span class="oi oi-person" aria-hidden="true"></span>
-                        @context.User.Identity?.Name
+                    <span class="nav-link text-light opacity-75 d-flex align-items-center gap-2">
+                        <UserAvatar UserId="@userId" DisplayName="@displayName" Size="sm" />
+                        @displayName
                     </span>
                 </div>
                 <div class="nav-item px-3">
@@ -87,6 +102,7 @@
     private bool collapseNavMenu = true;
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
     private string _currentLang = "en";
+    private string? _returnRoomCode;
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,6 +117,41 @@
             await Language.EnsureLoadedAsync();
         }
         _currentLang = Language.Code;
+
+        await ActiveRoom.EnsureLoadedAsync();
+        UpdateReturnRoomCode();
+        ActiveRoom.Changed += OnActiveRoomChanged;
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdateReturnRoomCode();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnActiveRoomChanged()
+    {
+        UpdateReturnRoomCode();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateReturnRoomCode()
+    {
+        var code = ActiveRoom.RoomCode;
+        _returnRoomCode = code is not null && !IsOnRoomPage(code) ? code : null;
+    }
+
+    private bool IsOnRoomPage(string code)
+    {
+        var relative = Nav.ToBaseRelativePath(Nav.Uri).TrimEnd('/');
+        return relative.Equals($"multiplayer/{code}", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose()
+    {
+        ActiveRoom.Changed -= OnActiveRoomChanged;
+        Nav.LocationChanged -= OnLocationChanged;
     }
 
     private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;

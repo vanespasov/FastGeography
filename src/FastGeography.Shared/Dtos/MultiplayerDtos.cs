@@ -4,12 +4,14 @@ using FastGeography.Shared;
 
 public record CreateRoomResponse(string RoomCode, string LanguageCode);
 
+public record RoomPlayerDto(string UserId, string DisplayName);
+
 /// <summary>One completed round row belonging to a single player (letter + their scored answers).</summary>
 public record CompletedRoundRow(char Letter, List<LocationResult> Details);
 
 public record RoomStateDto(
     string RoomCode,
-    List<string> Players,
+    List<RoomPlayerDto> Players,
     string HostName,
     bool RoundActive,
     int RoundsCompletedInSet,
@@ -22,6 +24,7 @@ public record RoomStateDto(
 public record RoundStartedMessage(char Letter, DateTime EndsAt, int RoundNumber);
 
 public record PlayerRoundResult(
+    string UserId,
     string PlayerName,
     int TotalPoints,
     int Rank,

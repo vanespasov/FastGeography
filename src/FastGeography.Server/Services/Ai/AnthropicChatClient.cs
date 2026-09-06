@@ -32,6 +32,7 @@ public sealed class AnthropicChatClient : IChatCompletionClient
         var body = new AnthropicRequest(
             _model,
             512,
+            0.9,
             systemPrompt,
             [new AnthropicMessage("user", userPrompt)]);
 
@@ -59,6 +60,7 @@ public sealed class AnthropicChatClient : IChatCompletionClient
     private sealed record AnthropicRequest(
         [property: JsonPropertyName("model")] string Model,
         [property: JsonPropertyName("max_tokens")] int MaxTokens,
+        [property: JsonPropertyName("temperature")] double Temperature,
         [property: JsonPropertyName("system")] string System,
         [property: JsonPropertyName("messages")] AnthropicMessage[] Messages);
 

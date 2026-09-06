@@ -2,6 +2,7 @@ namespace FastGeography.Shared.Dtos;
 
 public record LeaderboardEntry(
     int Rank,
+    string UserId,
     string DisplayName,
     int CareerPoints,
     string Badge,
@@ -15,6 +16,7 @@ public record RecentRound(
     DateTime PlayedAt);
 
 public record PlayerStats(
+    string UserId,
     int Rank,
     string DisplayName,
     int CareerPoints,

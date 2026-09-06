@@ -1,0 +1,26 @@
+@using FastGeography.Shared
+
+<span class="player-avatar player-avatar-@Size"
+      style="--avatar-bg: @_color"
+      title="@Title"
+      aria-hidden="@(string.IsNullOrEmpty(Title) ? "true" : null)">
+    <img src="@($"images/avatars/avatar-{_index}.svg")" alt="" />
+</span>
+
+@code {
+    [Parameter] public string? UserId { get; set; }
+    [Parameter] public string? DisplayName { get; set; }
+    [Parameter] public string Size { get; set; } = "md";
+    [Parameter] public string? Title { get; set; }
+
+    private int _index;
+    private string _color = "#2d6a4f";
+
+    protected override void OnParametersSet()
+    {
+        var info = PlayerAvatar.Resolve(UserId, DisplayName);
+        _index = info.Index;
+        _color = info.BackgroundColor;
+        Title ??= DisplayName;
+    }
+}

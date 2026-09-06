@@ -16,15 +16,18 @@ public sealed class DestinationStoriesController : ControllerBase
     private const int MaxPlacesPerRequest = 10;
 
     private readonly IDestinationStoryService _stories;
+    private readonly IPlaceImageService _images;
     private readonly ApplicationDbContext _db;
     private readonly ILogger<DestinationStoriesController> _logger;
 
     public DestinationStoriesController(
         IDestinationStoryService stories,
+        IPlaceImageService images,
         ApplicationDbContext db,
         ILogger<DestinationStoriesController> logger)
     {
         _stories = stories;
+        _images = images;
         _db = db;
         _logger = logger;
     }
@@ -74,10 +77,53 @@ public sealed class DestinationStoriesController : ControllerBase
             }
 
             var story = await _stories.GetStoryAsync(place.Name, place.Type, place.Coordinates, lang, ct);
-            if (story is not null)
-                results.Add(new StoryResult(place.Name, place.Type, story));
+            if (story is null)
+                continue;
+
+            var (lat, lon) = ParseCoordinates(place.Coordinates);
+            if (lat is null || lon is null)
+            {
+                var coords = await _db.Toponyms
+                    .AsNoTracking()
+                    .Where(t => t.NormalizedName == normalized && t.Category == place.Type)
+                    .Select(t => new { t.Latitude, t.Longitude })
+                    .FirstOrDefaultAsync(ct);
+                if (coords is not null)
+                {
+                    lat = coords.Latitude;
+                    lon = coords.Longitude;
+                }
+            }
+
+            var image = await _images.GetImageAsync(
+                normalized, place.Type, place.Name, lat, lon, lang, ct);
+
+            results.Add(new StoryResult(
+                place.Name,
+                place.Type,
+                story,
+                image?.ImageUrl,
+                image?.Attribution));
         }
 
         return Ok(new DestinationStoriesResponse(results));
+    }
+
+    private static (double? Lat, double? Lon) ParseCoordinates(string? coordinates)
+    {
+        if (string.IsNullOrWhiteSpace(coordinates))
+            return (null, null);
+
+        var parts = coordinates.Split(',');
+        if (parts.Length != 2)
+            return (null, null);
+
+        if (double.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var lat)
+            && double.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var lon))
+            return (lat, lon);
+
+        return (null, null);
     }
 }

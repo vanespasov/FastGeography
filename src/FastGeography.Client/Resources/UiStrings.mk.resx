@@ -36,6 +36,7 @@
   <data name="Nav_CasualPlay" xml:space="preserve"><value>Слободна игра</value></data>
   <data name="Nav_Ranked" xml:space="preserve"><value>Рангирана</value></data>
   <data name="Nav_Multiplayer" xml:space="preserve"><value>Повеќеиграчи</value></data>
+  <data name="Nav_ReturnToRoom" xml:space="preserve"><value>Врати се во соба {0}</value></data>
   <data name="Nav_Scoreboard" xml:space="preserve"><value>Табела</value></data>
   <data name="Nav_SignIn" xml:space="preserve"><value>Најава</value></data>
   <data name="Nav_Register" xml:space="preserve"><value>Регистрација</value></data>
@@ -67,6 +68,7 @@
   <data name="Col_Country" xml:space="preserve"><value>Држава</value></data>
   <data name="Col_River" xml:space="preserve"><value>Река</value></data>
   <data name="Col_Mountain" xml:space="preserve"><value>Планина</value></data>
+  <data name="Col_Check" xml:space="preserve"><value>Провери</value></data>
   <data name="Col_TimeSec" xml:space="preserve"><value>Време (с)</value></data>
   <data name="Col_Action" xml:space="preserve"><value>Акција</value></data>
   <data name="Col_Category" xml:space="preserve"><value>Категорија</value></data>
@@ -80,7 +82,9 @@
   <data name="GameRow_ViewOnMap" xml:space="preserve"><value>Прикажи {0} на карта</value></data>
   <data name="GameRow_ViewOnMapAlt" xml:space="preserve"><value>Прикажи на карта</value></data>
   <data name="GameRow_CheckButton" xml:space="preserve"><value>Провери</value></data>
+  <data name="GameRow_CheckedButton" xml:space="preserve"><value>Проверено ({0}с)</value></data>
   <data name="GameRow_CheckAriaLabel" xml:space="preserve"><value>Провери одговори за буквата {0}</value></data>
+  <data name="GameRow_CheckedAriaLabel" xml:space="preserve"><value>Проверени одговори за буквата {0} за {1} секунди</value></data>
 
   <!-- ── Рангирана игра ── -->
   <data name="Ranked_PageTitle" xml:space="preserve"><value>Рангирана игра – FastGeography</value></data>
@@ -117,6 +121,9 @@
   <data name="Mp_Join" xml:space="preserve"><value>Приклучи</value></data>
   <data name="Mp_CreateError" xml:space="preserve"><value>Не можеше да се создаде соба. Обидете се повторно.</value></data>
   <data name="Mp_JoinCodeEmpty" xml:space="preserve"><value>Внесете код на собата.</value></data>
+  <data name="Mp_ReturnToRoom" xml:space="preserve"><value>Врати се во соба {0}</value></data>
+  <data name="Mp_ReturnToRoomDesc" xml:space="preserve"><value>Ја напуштивте собата {0}. Приклучете се повторно за да продолжите со пријателите.</value></data>
+  <data name="Mp_ReturnToRoomDismiss" xml:space="preserve"><value>Отфрли</value></data>
 
   <!-- ── Игра за повеќеиграчи ── -->
   <data name="MpGame_Room" xml:space="preserve"><value>Соба:</value></data>
@@ -154,6 +161,18 @@
   <data name="Sb_ColBadge" xml:space="preserve"><value>Значка</value></data>
   <data name="Sb_ColPoints" xml:space="preserve"><value>Поени</value></data>
   <data name="Sb_ColGames" xml:space="preserve"><value>Игри</value></data>
+  <data name="Sb_Me_PageTitle" xml:space="preserve"><value>Мои статистики – FastGeography</value></data>
+  <data name="Sb_Me_Heading" xml:space="preserve"><value>Мои статистики</value></data>
+  <data name="Sb_Me_BackToScoreboard" xml:space="preserve"><value>Назад на табелата</value></data>
+  <data name="Sb_Me_GlobalRank" xml:space="preserve"><value>Глобален ранг</value></data>
+  <data name="Sb_Me_GamesSummary" xml:space="preserve"><value>{0} рангирани игри.</value></data>
+  <data name="Sb_Me_RecentRounds" xml:space="preserve"><value>Неодамнешни рунди</value></data>
+  <data name="Sb_Me_NoRounds" xml:space="preserve"><value>Нема рангирани рунди. Играјте рангирана рунда за да ја видите историјата.</value></data>
+  <data name="Sb_Me_ColPlayedAt" xml:space="preserve"><value>Играно</value></data>
+  <data name="Sb_Me_ColMode" xml:space="preserve"><value>Режим</value></data>
+  <data name="Sb_Me_ModeRanked" xml:space="preserve"><value>Рангирано</value></data>
+  <data name="Sb_Me_ModeMultiplayer" xml:space="preserve"><value>Мултиплеер</value></data>
+  <data name="Sb_Me_ProfileNotFound" xml:space="preserve"><value>Профилот на играчот не е пронајден.</value></data>
 
   <!-- ── Најава ── -->
   <data name="Login_PageTitle" xml:space="preserve"><value>Најава – FastGeography</value></data>
@@ -180,9 +199,13 @@
   <data name="Reg_SignInLink" xml:space="preserve"><value>Најавете се</value></data>
   <data name="Reg_Failed" xml:space="preserve"><value>Регистрацијата не успеа.</value></data>
 
-  <!-- ── Панел со приказни за дестинации ── -->
-  <data name="Stories_Heading" xml:space="preserve"><value>Ги отклучивте приказните за дестинации!</value></data>
+  <!-- ── Поповери со приказни за дестинации ── -->
   <data name="Stories_Loading" xml:space="preserve"><value>Вчитување патни приказни…</value></data>
+  <data name="Stories_ReadStory" xml:space="preserve"><value>Прочитај патничка приказна за {0}</value></data>
+  <data name="Stories_Close" xml:space="preserve"><value>Затвори приказна</value></data>
+  <data name="Stories_PlacePhoto" xml:space="preserve"><value>Фотографија од {0}</value></data>
+  <data name="Stories_PlaceStamp" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Stories_ViaSource" xml:space="preserve"><value>преку {0}</value></data>
 
   <!-- ── 404 ── -->
   <data name="App_NotFound" xml:space="preserve"><value>Жал ни е, на оваа адреса нема ништо.</value></data>

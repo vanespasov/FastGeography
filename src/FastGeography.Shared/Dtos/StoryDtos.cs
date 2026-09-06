@@ -13,7 +13,12 @@ public record DestinationStoriesRequest(List<StoryRequest> Places);
 /// <summary>
 /// A story result returned by the API.
 /// </summary>
-public record StoryResult(string Name, LocationType Type, string Story);
+public record StoryResult(
+    string Name,
+    LocationType Type,
+    string Story,
+    string? ImageUrl = null,
+    string? ImageAttribution = null);
 
 /// <summary>
 /// Response from POST api/destination-stories.

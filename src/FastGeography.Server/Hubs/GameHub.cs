@@ -75,7 +75,9 @@ public sealed class GameHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupKey(roomCode));
 
         var room = _roomService.GetRoom(roomCode)!;
-        var players = room.Players.Values.ToList();
+        var players = room.Players
+            .Select(kv => new RoomPlayerDto(kv.Key, kv.Value))
+            .ToList();
         var hostName = room.Players.TryGetValue(room.HostUserId, out var h) ? h : "Host";
         var myHistory = room.PlayerSetHistory.TryGetValue(userId, out var hist) ? hist : [];
 
@@ -90,7 +92,7 @@ public sealed class GameHub : Hub
             room.LanguageCode));
 
         await Clients.OthersInGroup(GroupKey(roomCode))
-            .SendAsync("PlayerJoined", displayName);
+            .SendAsync("PlayerJoined", new RoomPlayerDto(userId, displayName));
     }
 
     public async Task LeaveRoom(string roomCode)
@@ -241,7 +243,7 @@ public sealed class GameHub : Hub
         {
             var entry = ranked[i];
             var playerName = room.Players.TryGetValue(entry.UserId, out var n) ? n : "Player";
-            playerResults.Add(new PlayerRoundResult(playerName, entry.Total, i + 1, entry.Details));
+            playerResults.Add(new PlayerRoundResult(entry.UserId, playerName, entry.Total, i + 1, entry.Details));
         }
 
         // Store per-player row for the set history

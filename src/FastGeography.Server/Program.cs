@@ -137,6 +137,7 @@ public partial class Program
 
         // --- Destination AI story service (OpenAI, Grok, Claude, Ollama) ---
         builder.Services.AddDestinationStoryServices(builder.Configuration);
+        builder.Services.AddPlaceImageServices(builder.Configuration);
 
         // --- Rate limiting ---
         builder.Services.AddRateLimiter(limiter =>

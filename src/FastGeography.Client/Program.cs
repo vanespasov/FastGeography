@@ -32,6 +32,7 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<CookieAuthenticationStateProvider>());
 
 builder.Services.AddScoped<GameLanguageState>();
+builder.Services.AddScoped<ActiveMultiplayerRoomState>();
 builder.Services.AddLocalization();
 builder.Services.AddBlazorApplicationInsights();
 

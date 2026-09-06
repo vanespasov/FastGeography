@@ -1,7 +1,9 @@
 @page "/multiplayer"
 @attribute [Authorize]
+@implements IDisposable
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject ActiveMultiplayerRoomState ActiveRoom
 @inject IStringLocalizer<UiStrings> L
 
 <PageTitle>@L["Mp_PageTitle"]</PageTitle>
@@ -9,6 +11,24 @@
 <div class="container py-4" style="max-width:500px">
     <h2>@L["Mp_Heading"]</h2>
     <p class="text-muted">@L["Mp_Description"]</p>
+
+    @if (_returnRoomCode is not null)
+    {
+        <div class="alert alert-info d-flex flex-wrap align-items-center gap-2 mb-4">
+            <div class="flex-grow-1">
+                <strong>@string.Format(L["Mp_ReturnToRoom"]!, _returnRoomCode)</strong>
+                <div class="small mb-0">@string.Format(L["Mp_ReturnToRoomDesc"]!, _returnRoomCode)</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-primary btn-sm" href="@($"multiplayer/{_returnRoomCode}")">
+                    @string.Format(L["Mp_ReturnToRoom"]!, _returnRoomCode)
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="DismissReturnRoom">
+                    @L["Mp_ReturnToRoomDismiss"]
+                </button>
+            </div>
+        </div>
+    }
 
     @if (!string.IsNullOrEmpty(_error))
     {
@@ -51,6 +71,28 @@
     private string _createLang = "en";
     private bool _busy;
     private string? _error;
+    private string? _returnRoomCode;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ActiveRoom.EnsureLoadedAsync();
+        _returnRoomCode = ActiveRoom.RoomCode;
+        ActiveRoom.Changed += OnActiveRoomChanged;
+    }
+
+    private void OnActiveRoomChanged()
+    {
+        _returnRoomCode = ActiveRoom.RoomCode;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DismissReturnRoom()
+    {
+        await ActiveRoom.ClearAsync();
+        _returnRoomCode = null;
+    }
+
+    public void Dispose() => ActiveRoom.Changed -= OnActiveRoomChanged;
 
     private async Task CreateRoom()
     {
