@@ -1,0 +1,131 @@
+@inject IStringLocalizer<UiStrings> L
+
+<div class="answer-actions @(PopoverLeft ? "popover-left" : "")"
+     @onkeydown="OnKeyDown">
+    @if (MapsUri is not null)
+    {
+        <a href="@MapsUri" target="_blank" rel="noopener noreferrer" class="answer-action-link"
+           aria-label="@string.Format(L["GameRow_ViewOnMap"]!, Answer)">
+            <img src="images/visit.svg" alt="@L["GameRow_ViewOnMapAlt"]" class="answer-action-icon" />
+        </a>
+    }
+
+    @if (_showStorySlot)
+    {
+        @if (_storyPending)
+        {
+            <span class="answer-story-loading" role="status" aria-label="@L["Stories_Loading"]">
+                <span class="spinner-border spinner-border-sm text-success" aria-hidden="true"></span>
+            </span>
+        }
+        else if (_story is not null)
+        {
+            <img src="@_stampSrc"
+                 alt="@_stampAlt"
+                 class="story-stamp @(_imageBroken ? "story-stamp-fallback" : "")"
+                 @onerror="OnImageError" />
+
+            <div class="story-trigger @(_pinned ? "story-pinned" : "")">
+                <button type="button"
+                        class="story-btn answer-action-link"
+                        @onclick="TogglePin"
+                        @onclick:stopPropagation="true"
+                        aria-label="@string.Format(L["Stories_ReadStory"]!, Answer)"
+                        aria-expanded="@_pinned">
+                    <img src="images/story.svg" alt="" class="answer-action-icon story-icon-unlock" aria-hidden="true" />
+                </button>
+                <div class="story-popover" role="tooltip">
+                    @if (_showPopoverImage)
+                    {
+                        <img src="@_story.ImageUrl"
+                             alt="@string.Format(L["Stories_PlacePhoto"]!, Answer)"
+                             class="story-popover-image"
+                             @onerror="OnImageError" />
+                    }
+                    else if (_showFallbackArt)
+                    {
+                        <img src="@_categoryIcon"
+                             alt="@_stampAlt"
+                             class="story-popover-image story-popover-fallback" />
+                    }
+                    <p class="story-popover-text">@_story.Story</p>
+                    @if (_showPopoverImage && !string.IsNullOrWhiteSpace(_story.ImageAttribution))
+                    {
+                        <p class="story-popover-credit">
+                            @string.Format(L["Stories_ViaSource"]!, _story.ImageAttribution)
+                        </p>
+                    }
+                </div>
+            </div>
+        }
+    }
+
+    @if (_pinned)
+    {
+        <button type="button" class="story-backdrop" aria-label="@L["Stories_Close"]" @onclick="ClosePin"></button>
+    }
+</div>
+
+@code {
+    [Parameter] public Uri? MapsUri { get; set; }
+    [Parameter] public string? Answer { get; set; }
+    [Parameter] public GameLocation? Location { get; set; }
+    [Parameter] public bool PopoverLeft { get; set; }
+
+    [CascadingParameter] private DestinationStoriesContext? Stories { get; set; }
+
+    private bool _pinned;
+    private DestinationStoryEntry? _story;
+    private bool _storyPending;
+    private bool _showStorySlot;
+    private bool _imageBroken;
+    private string _stampSrc = "";
+    private string _stampAlt = "";
+    private string _categoryIcon = "";
+    private bool _showPopoverImage;
+    private bool _showFallbackArt;
+
+    protected override void OnParametersSet()
+    {
+        _story = Stories?.GetStory(Location);
+        _storyPending = Stories?.IsStoryPending(Location) == true;
+        _showStorySlot = Stories?.ShouldShowStorySlot(Location) == true;
+        _imageBroken = false;
+
+        _categoryIcon = Location is not null
+            ? PlaceCategoryIcon.CategoryIconPath(Location.LocationType)
+            : PlaceCategoryIcon.CategoryIconPath(LocationType.City);
+
+        _stampAlt = Location is not null
+            ? string.Format(L["Stories_PlaceStamp"]!, L[$"Location_{Location.LocationType}"].Value, Answer)
+            : Answer ?? "";
+
+        if (_story is not null)
+        {
+            _showPopoverImage = !string.IsNullOrWhiteSpace(_story.ImageUrl);
+            _showFallbackArt = !_showPopoverImage;
+            _stampSrc = _showPopoverImage ? _story.ImageUrl! : _categoryIcon;
+        }
+
+        if (!_showStorySlot || _story is null)
+            _pinned = false;
+    }
+
+    private void TogglePin() => _pinned = !_pinned;
+
+    private void ClosePin() => _pinned = false;
+
+    private void OnImageError()
+    {
+        _imageBroken = true;
+        _showPopoverImage = false;
+        _showFallbackArt = true;
+        _stampSrc = _categoryIcon;
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            ClosePin();
+    }
+}

@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build, test, and security scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build (Release)
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Unit tests
+        run: |
+          dotnet test tst/FastGeography.Tests.Unit \
+            --no-build \
+            --configuration Release \
+            --logger "trx;LogFileName=unit-results.trx" \
+            --collect:"XPlat Code Coverage"
+
+      - name: Integration tests
+        run: |
+          dotnet test tst/FastGeography.Tests.Integration \
+            --no-build \
+            --configuration Release \
+            --logger "trx;LogFileName=integration-results.trx"
+        env:
+          # Empty credentials — the fake geocoding service is substituted in tests
+          # so no real API calls are made regardless of which provider is configured.
+          Geocoding__Provider: "Nominatim"
+          Geocoding__GeoNames__Username: ""
+          Geocoding__BingMaps__ApiKey: ""
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test results
+          path: "**/*.trx"
+          reporter: dotnet-trx
+
+      - name: Security scan — vulnerable packages
+        run: dotnet list package --vulnerable --include-transitive
+        continue-on-error: true

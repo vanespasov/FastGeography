@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-hidden="true">
+  <path d="M18 20h28v34H18z" fill="#fff"/>
+  <path d="M22 24h20v4H22zM22 32h14v3H22zM22 39h18v3H22z" fill="rgba(255,255,255,0.35)"/>
+  <path d="M32 10c6 0 10 4 10 10H22c0-6 4-10 10-10z" fill="#fff"/>
+  <circle cx="44" cy="44" r="8" fill="#fff"/>
+  <circle cx="44" cy="44" r="3" fill="rgba(255,255,255,0.45)"/>
+</svg>

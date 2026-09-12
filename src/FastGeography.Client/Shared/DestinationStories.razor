@@ -1,0 +1,122 @@
+@inject HttpClient Http
+@inject GameLanguageState Language
+@inject ILogger<DestinationStories> Logger
+@implements IDisposable
+
+<CascadingValue Value="_context" IsFixed="false">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public List<StoryRequest>? Places { get; set; }
+
+    private DestinationStoriesContext _context = new(null);
+    private int _loadId;
+    private readonly Dictionary<(string Name, LocationType Type), DestinationStoryEntry> _stories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Language.EnsureLoadedAsync();
+        Language.Changed += OnLanguageChanged;
+    }
+
+    protected override async Task OnParametersSetAsync() => await LoadStoriesAsync();
+
+    private void OnLanguageChanged()
+    {
+        _stories.Clear();
+        _ = InvokeAsync(LoadStoriesAsync);
+    }
+
+    private async Task LoadStoriesAsync()
+    {
+        if (Places is null || Places.Count == 0)
+        {
+            _stories.Clear();
+            _context = new DestinationStoriesContext(null);
+            return;
+        }
+
+        await Language.EnsureLoadedAsync();
+        var lang = Language.Code;
+        var places = Places.Select(p => p with { Lang = lang }).ToList();
+        var pending = places
+            .Where(p => !_stories.ContainsKey(StoryKey(p)))
+            .ToList();
+
+        if (pending.Count == 0)
+        {
+            PublishContext();
+            return;
+        }
+
+        const int maxBatch = 10;
+        var loadId = ++_loadId;
+        var pendingKeys = pending.Select(p => (p.Name, p.Type)).ToList();
+        PublishContext(pendingKeys);
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            foreach (var batch in pending.Chunk(maxBatch))
+            {
+                if (loadId != _loadId)
+                    return;
+
+                var body = new DestinationStoriesRequest(batch.ToList());
+                var resp = await Http.PostAsJsonAsync("api/destination-stories", body);
+                if (loadId != _loadId)
+                    return;
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    Logger.LogWarning(
+                        "Destination stories request failed with {StatusCode}",
+                        (int)resp.StatusCode);
+                    continue;
+                }
+
+                var data = await resp.Content.ReadFromJsonAsync<DestinationStoriesResponse>();
+                var results = data?.Stories ?? [];
+                foreach (var result in results)
+                {
+                    _stories[StoryKey(result.Name, result.Type)] = new DestinationStoryEntry(
+                        result.Story,
+                        result.ImageUrl,
+                        result.ImageAttribution);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            if (loadId != _loadId)
+                return;
+            Logger.LogWarning(ex, "Could not load destination stories");
+        }
+
+        if (loadId != _loadId)
+            return;
+
+        PublishContext();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void PublishContext(IReadOnlyList<(string Name, LocationType Type)>? pendingKeys = null)
+    {
+        var stories = _stories
+            .Select(kv => (kv.Key.Name, kv.Key.Type, kv.Value.Story, kv.Value.ImageUrl, kv.Value.ImageAttribution))
+            .ToList();
+        _context = new DestinationStoriesContext(stories, pendingKeys);
+    }
+
+    private static (string Name, LocationType Type) StoryKey(StoryRequest place) =>
+        StoryKey(place.Name, place.Type);
+
+    private static (string Name, LocationType Type) StoryKey(string name, LocationType type) =>
+        (name.Trim().ToLowerInvariant(), type);
+
+    public void Dispose() => Language.Changed -= OnLanguageChanged;
+}
