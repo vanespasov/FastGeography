@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 public sealed class TestAppFixture : IDisposable
 {
     public WebApplicationFactory<Program> Factory { get; }
+    public FakeEmailSender EmailSender { get; } = new();
 
     public TestAppFixture()
     {
@@ -31,6 +32,7 @@ public sealed class TestAppFixture : IDisposable
                     s.AddSingleton<IGeocodingService, FakeGeocodingService>();
                     s.AddSingleton<IDestinationStoryService, FakeDestinationStoryService>();
                     s.AddSingleton<IPlaceImageService, FakePlaceImageService>();
+                    s.AddSingleton<IEmailSender>(EmailSender);
 
                     var toRemove = s
                         .Where(d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>)

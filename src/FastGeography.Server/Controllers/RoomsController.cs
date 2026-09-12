@@ -28,6 +28,14 @@ public class RoomsController : ControllerBase
         return Ok(new CreateRoomResponse(room.Code, room.LanguageCode));
     }
 
+    [HttpGet("{code}")]
+    public IActionResult GetRoom(string code)
+    {
+        var room = _rooms.GetRoom(code);
+        if (room is null) return NotFound();
+        return Ok(new RoomPreviewResponse(room.Code, room.LanguageCode));
+    }
+
     [HttpGet("{code}/exists")]
     [AllowAnonymous]
     public IActionResult RoomExists(string code)

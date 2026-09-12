@@ -7,4 +7,6 @@ public interface IAuthService
     Task<IdentityResult> RegisterAsync(string email, string password, string displayName);
     Task<bool> LoginAsync(string email, string password);
     Task LogoutAsync();
+    Task ForgotPasswordAsync(string email);
+    Task<IdentityResult> ResetPasswordAsync(string email, string token, string newPassword);
 }

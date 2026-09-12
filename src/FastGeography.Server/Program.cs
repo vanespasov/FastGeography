@@ -47,6 +47,11 @@ public partial class Program
         .AddDefaultTokenProviders()
         .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
+        builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+        {
+            options.TokenLifespan = TimeSpan.FromHours(2);
+        });
+
         builder.Services.ConfigureApplicationCookie(options =>
         {
             options.Cookie.HttpOnly = true;
@@ -132,6 +137,17 @@ public partial class Program
         // Unkeyed → CatalogGeocodingService decorator: checks DB first, falls back to
         // "active" provider, and persists confirmed results for future lookups.
         builder.Services.AddSingleton<IGeocodingService, CatalogGeocodingService>();
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.Section));
+        builder.Services.AddSingleton<IEmailSender>(sp =>
+        {
+            var smtp = sp.GetRequiredService<IOptions<SmtpOptions>>().Value;
+            return string.IsNullOrWhiteSpace(smtp.Host)
+                ? sp.GetRequiredService<LoggingEmailSender>()
+                : sp.GetRequiredService<SmtpEmailSender>();
+        });
+        builder.Services.AddSingleton<LoggingEmailSender>();
+        builder.Services.AddSingleton<SmtpEmailSender>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddSingleton<IRoomService, RoomService>();
 

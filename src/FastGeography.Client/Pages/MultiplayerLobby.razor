@@ -1,9 +1,12 @@
 @page "/multiplayer"
 @attribute [Authorize]
 @implements IDisposable
+@using FastGeography.Shared
+@using FastGeography.Shared.Dtos
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject ActiveMultiplayerRoomState ActiveRoom
+@inject GameLanguageState Language
 @inject IStringLocalizer<UiStrings> L
 
 <PageTitle>@L["Mp_PageTitle"]</PageTitle>
@@ -11,13 +14,23 @@
 <div class="container py-4" style="max-width:500px">
     <h2>@L["Mp_Heading"]</h2>
     <p class="text-muted">@L["Mp_Description"]</p>
+    <p class="mb-4">
+        <a href="/how-to-play">@L["Mp_HowToPlayLink"]</a>
+    </p>
 
     @if (_returnRoomCode is not null)
     {
         <div class="alert alert-info d-flex flex-wrap align-items-center gap-2 mb-4">
             <div class="flex-grow-1">
                 <strong>@string.Format(L["Mp_ReturnToRoom"]!, _returnRoomCode)</strong>
-                <div class="small mb-0">@string.Format(L["Mp_ReturnToRoomDesc"]!, _returnRoomCode)</div>
+                @if (_returnPreview is not null)
+                {
+                    <div class="small mb-0">@FormatRoomLanguageLine(_returnPreview.LanguageCode)</div>
+                }
+                else
+                {
+                    <div class="small mb-0">@string.Format(L["Mp_ReturnToRoomDesc"]!, _returnRoomCode)</div>
+                }
             </div>
             <div class="d-flex gap-2">
                 <a class="btn btn-primary btn-sm" href="@($"multiplayer/{_returnRoomCode}")">
@@ -55,13 +68,34 @@
     <div class="card">
         <div class="card-body">
             <h5 class="card-title">@L["Mp_JoinRoomTitle"]</h5>
-            <div class="input-group">
-                <input @bind="_joinCode" class="form-control" placeholder="@L["Mp_RoomCodePlaceholder"]"
-                       style="text-transform:uppercase" maxlength="6" />
-                <button class="btn btn-primary" @onclick="JoinRoom" disabled="@_busy">
+            <div class="input-group mb-2">
+                <input value="@_joinCode" @oninput="OnJoinCodeInput" class="form-control"
+                       placeholder="@L["Mp_RoomCodePlaceholder"]"
+                       style="text-transform:uppercase" maxlength="6" autocomplete="off" />
+                <button class="btn btn-primary" @onclick="JoinRoom" disabled="@(_busy || _joinPreview is null)">
                     @L["Mp_Join"]
                 </button>
             </div>
+
+            @if (_joinPreviewLoading)
+            {
+                <div class="text-muted small">@L["Sb_Loading"]</div>
+            }
+            else if (_joinPreview is not null)
+            {
+                <div class="alert alert-secondary mb-0 py-2">
+                    <div class="fw-semibold">@string.Format(L["Mp_RoomPreviewHeading"]!, _joinPreview.RoomCode)</div>
+                    <div class="small">@FormatRoomLanguageLine(_joinPreview.LanguageCode)</div>
+                    <div class="small text-muted">@RoomAlphabetHint(_joinPreview.LanguageCode)</div>
+                    @if (UiLanguageDiffers(_joinPreview.LanguageCode))
+                    {
+                        <div class="small text-warning mt-1">
+                            @string.Format(L["Mp_RoomPreviewUiMismatch"]!,
+                                UiLanguageName(Language.Code), UiLanguageName(_joinPreview.LanguageCode))
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -72,27 +106,75 @@
     private bool _busy;
     private string? _error;
     private string? _returnRoomCode;
+    private RoomPreviewResponse? _joinPreview;
+    private RoomPreviewResponse? _returnPreview;
+    private bool _joinPreviewLoading;
 
     protected override async Task OnInitializedAsync()
     {
+        await Language.EnsureLoadedAsync();
         await ActiveRoom.EnsureLoadedAsync();
         _returnRoomCode = ActiveRoom.RoomCode;
         ActiveRoom.Changed += OnActiveRoomChanged;
+
+        if (_returnRoomCode is not null)
+            _returnPreview = await FetchRoomPreviewAsync(_returnRoomCode);
     }
 
     private void OnActiveRoomChanged()
     {
         _returnRoomCode = ActiveRoom.RoomCode;
-        InvokeAsync(StateHasChanged);
+        InvokeAsync(async () =>
+        {
+            _returnPreview = _returnRoomCode is null
+                ? null
+                : await FetchRoomPreviewAsync(_returnRoomCode);
+            StateHasChanged();
+        });
     }
 
     private async Task DismissReturnRoom()
     {
         await ActiveRoom.ClearAsync();
         _returnRoomCode = null;
+        _returnPreview = null;
     }
 
     public void Dispose() => ActiveRoom.Changed -= OnActiveRoomChanged;
+
+    private async Task OnJoinCodeInput(ChangeEventArgs e)
+    {
+        _joinCode = (e.Value?.ToString() ?? string.Empty).Trim().ToUpperInvariant();
+        _error = null;
+        _joinPreview = null;
+
+        if (_joinCode.Length != 6)
+        {
+            _joinPreviewLoading = false;
+            return;
+        }
+
+        _joinPreviewLoading = true;
+        StateHasChanged();
+
+        _joinPreview = await FetchRoomPreviewAsync(_joinCode);
+        _joinPreviewLoading = false;
+
+        if (_joinPreview is null && _joinCode.Length == 6)
+            _error = L["Mp_RoomNotFound"];
+    }
+
+    private async Task<RoomPreviewResponse?> FetchRoomPreviewAsync(string code)
+    {
+        try
+        {
+            return await Http.GetFromJsonAsync<RoomPreviewResponse>($"api/rooms/{code.Trim().ToUpperInvariant()}");
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     private async Task CreateRoom()
     {
@@ -113,9 +195,36 @@
         }
     }
 
-    private void JoinRoom()
+    private async Task JoinRoom()
     {
-        if (string.IsNullOrWhiteSpace(_joinCode)) { _error = L["Mp_JoinCodeEmpty"]; return; }
-        Nav.NavigateTo($"/multiplayer/{_joinCode.Trim().ToUpperInvariant()}");
+        if (string.IsNullOrWhiteSpace(_joinCode))
+        {
+            _error = L["Mp_JoinCodeEmpty"];
+            return;
+        }
+
+        var code = _joinCode.Trim().ToUpperInvariant();
+        _joinPreview = await FetchRoomPreviewAsync(code);
+        if (_joinPreview is null)
+        {
+            _error = L["Mp_RoomNotFound"];
+            return;
+        }
+
+        Nav.NavigateTo($"/multiplayer/{code}");
     }
+
+    private string FormatRoomLanguageLine(string languageCode) =>
+        string.Format(L["Mp_RoomPreviewGameLang"]!, RoomLanguageName(languageCode));
+
+    private string RoomLanguageName(string languageCode) =>
+        languageCode == "mk" ? L["MpGame_LangMk"].Value : L["MpGame_LangEn"].Value;
+
+    private string UiLanguageName(string languageCode) => RoomLanguageName(languageCode);
+
+    private string RoomAlphabetHint(string languageCode) =>
+        languageCode == "mk" ? L["Mp_RoomPreviewMkHint"].Value : L["Mp_RoomPreviewEnHint"].Value;
+
+    private bool UiLanguageDiffers(string roomLanguageCode) =>
+        !string.Equals(Language.Code, roomLanguageCode, StringComparison.OrdinalIgnoreCase);
 }

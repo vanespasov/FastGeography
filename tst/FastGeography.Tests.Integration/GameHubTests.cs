@@ -67,6 +67,11 @@ public sealed class GameHubTests : IClassFixture<TestAppFixture>
             Assert.NotNull(room);
             Assert.Equal(6, room!.RoomCode.Length);
 
+            var preview = await restClient.GetFromJsonAsync<RoomPreviewResponse>($"/api/rooms/{room.RoomCode}");
+            Assert.NotNull(preview);
+            Assert.Equal(room.RoomCode, preview!.RoomCode);
+            Assert.Equal("en", preview.LanguageCode);
+
             // Verify the room exists
             var existsResp = await restClient.GetAsync($"/api/rooms/{room.RoomCode}/exists");
             Assert.Equal(HttpStatusCode.OK, existsResp.StatusCode);

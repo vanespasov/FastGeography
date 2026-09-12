@@ -74,6 +74,25 @@ public sealed class CookieAuthenticationStateProvider : AuthenticationStateProvi
         NotifyAuthenticationStateChanged(Task.FromResult(Anonymous));
     }
 
+    public async Task<bool> ForgotPasswordAsync(string email)
+    {
+        var response = await _http.PostAsJsonAsync("api/auth/forgot-password", new ForgotPasswordRequest(email));
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<(bool Success, string? Error)> ResetPasswordAsync(
+        string email, string token, string newPassword)
+    {
+        var response = await _http.PostAsJsonAsync(
+            "api/auth/reset-password", new ResetPasswordRequest(email, token, newPassword));
+
+        if (response.IsSuccessStatusCode)
+            return (true, null);
+
+        var body = await response.Content.ReadFromJsonAsync<ErrorBody>();
+        return (false, string.Join("; ", body?.Errors ?? ["Password reset failed."]));
+    }
+
     public UserInfoResponse? CurrentUser => _cachedUser;
 
     private static AuthenticationState BuildState(UserInfoResponse user)

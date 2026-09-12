@@ -4,6 +4,8 @@ using FastGeography.Shared;
 
 public record CreateRoomResponse(string RoomCode, string LanguageCode);
 
+public record RoomPreviewResponse(string RoomCode, string LanguageCode);
+
 public record RoomPlayerDto(string UserId, string DisplayName);
 
 /// <summary>One completed round row belonging to a single player (letter + their scored answers).</summary>

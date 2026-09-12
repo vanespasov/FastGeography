@@ -38,6 +38,7 @@
   <data name="Nav_Multiplayer" xml:space="preserve"><value>Multiplayer</value></data>
   <data name="Nav_ReturnToRoom" xml:space="preserve"><value>Return to room {0}</value></data>
   <data name="Nav_Scoreboard" xml:space="preserve"><value>Scoreboard</value></data>
+  <data name="Nav_HowToPlay" xml:space="preserve"><value>How to Play</value></data>
   <data name="Nav_SignIn" xml:space="preserve"><value>Sign In</value></data>
   <data name="Nav_Register" xml:space="preserve"><value>Register</value></data>
   <data name="Nav_SignOut" xml:space="preserve"><value>Sign Out</value></data>
@@ -51,6 +52,7 @@
   <data name="Game_Dismiss" xml:space="preserve"><value>Dismiss</value></data>
   <data name="Game_CheckingAnswers" xml:space="preserve"><value>Checking your answers…</value></data>
   <data name="Game_NoGameStarted" xml:space="preserve"><value>No game started. Please start one.</value></data>
+  <data name="Game_HowToPlayLink" xml:space="preserve"><value>How to play</value></data>
   <data name="Game_TotalPoints" xml:space="preserve"><value>Total points: {0}</value></data>
   <data name="Game_AmazingExplorer" xml:space="preserve"><value>Amazing Explorer! You earned the {0} badge!</value></data>
   <data name="Game_AnswersTable" xml:space="preserve"><value>Geography game answers</value></data>
@@ -90,6 +92,7 @@
   <data name="Ranked_PageTitle" xml:space="preserve"><value>Ranked Play – FastGeography</value></data>
   <data name="Ranked_Heading" xml:space="preserve"><value>Ranked Mode</value></data>
   <data name="Ranked_Subtitle" xml:space="preserve"><value>Points are saved to the global scoreboard.</value></data>
+  <data name="Ranked_HowToPlayLink" xml:space="preserve"><value>How ranked mode works</value></data>
   <data name="Ranked_StartRound" xml:space="preserve"><value>Start Ranked Round</value></data>
   <data name="Ranked_Submitting" xml:space="preserve"><value>Submitting to server…</value></data>
   <data name="Ranked_RoundComplete" xml:space="preserve"><value>Round complete!</value></data>
@@ -109,6 +112,7 @@
   <data name="Mp_PageTitle" xml:space="preserve"><value>Multiplayer – FastGeography</value></data>
   <data name="Mp_Heading" xml:space="preserve"><value>Multiplayer</value></data>
   <data name="Mp_Description" xml:space="preserve"><value>Play live against friends – everyone gets the same letter and 60 seconds.</value></data>
+  <data name="Mp_HowToPlayLink" xml:space="preserve"><value>How multiplayer works</value></data>
   <data name="Mp_CreateRoomTitle" xml:space="preserve"><value>Create a New Room</value></data>
   <data name="Mp_CreateRoomDesc" xml:space="preserve"><value>Get a join code and share it with friends.</value></data>
   <data name="Mp_GameLanguageLabel" xml:space="preserve"><value>Game language</value></data>
@@ -121,6 +125,12 @@
   <data name="Mp_Join" xml:space="preserve"><value>Join</value></data>
   <data name="Mp_CreateError" xml:space="preserve"><value>Could not create a room. Please try again.</value></data>
   <data name="Mp_JoinCodeEmpty" xml:space="preserve"><value>Enter a room code.</value></data>
+  <data name="Mp_RoomNotFound" xml:space="preserve"><value>No room found with that code.</value></data>
+  <data name="Mp_RoomPreviewHeading" xml:space="preserve"><value>Room {0}</value></data>
+  <data name="Mp_RoomPreviewGameLang" xml:space="preserve"><value>Game language: {0}</value></data>
+  <data name="Mp_RoomPreviewEnHint" xml:space="preserve"><value>Latin alphabet (A–Z). Answers must start with a Latin letter.</value></data>
+  <data name="Mp_RoomPreviewMkHint" xml:space="preserve"><value>Cyrillic alphabet (А–Ш). Answers must start with a Cyrillic letter.</value></data>
+  <data name="Mp_RoomPreviewUiMismatch" xml:space="preserve"><value>Your app is in {0}, but this room plays in {1}.</value></data>
   <data name="Mp_ReturnToRoom" xml:space="preserve"><value>Return to room {0}</value></data>
   <data name="Mp_ReturnToRoomDesc" xml:space="preserve"><value>You left room {0}. Rejoin to continue with your friends.</value></data>
   <data name="Mp_ReturnToRoomDismiss" xml:space="preserve"><value>Dismiss</value></data>
@@ -129,6 +139,7 @@
   <data name="MpGame_Room" xml:space="preserve"><value>Room:</value></data>
   <data name="MpGame_LangEn" xml:space="preserve"><value>English</value></data>
   <data name="MpGame_LangMk" xml:space="preserve"><value>Македонски</value></data>
+  <data name="MpGame_LangMismatch" xml:space="preserve"><value>This room uses {0}. Your menus stay in {1}, but round letters and valid answers follow the room language.</value></data>
   <data name="MpGame_RoundOf" xml:space="preserve"><value>Round {0} / {1}</value></data>
   <data name="MpGame_SetTotal" xml:space="preserve"><value>Set total: {0} pts</value></data>
   <data name="MpGame_LeaveRoom" xml:space="preserve"><value>Leave Room</value></data>
@@ -184,6 +195,30 @@
   <data name="Login_NoAccount" xml:space="preserve"><value>Don't have an account?</value></data>
   <data name="Login_RegisterLink" xml:space="preserve"><value>Register here</value></data>
   <data name="Login_InvalidCredentials" xml:space="preserve"><value>Invalid email or password.</value></data>
+  <data name="Login_ForgotPasswordLink" xml:space="preserve"><value>Forgot your password?</value></data>
+
+  <!-- ── Forgot password ── -->
+  <data name="Forgot_PageTitle" xml:space="preserve"><value>Reset Password – FastGeography</value></data>
+  <data name="Forgot_Heading" xml:space="preserve"><value>Reset your password</value></data>
+  <data name="Forgot_Description" xml:space="preserve"><value>Enter the email address for your account. If it exists, we will send you a link to choose a new password.</value></data>
+  <data name="Forgot_Submit" xml:space="preserve"><value>Send reset link</value></data>
+  <data name="Forgot_Busy" xml:space="preserve"><value>Sending…</value></data>
+  <data name="Forgot_Success" xml:space="preserve"><value>If an account exists for that email, we sent a password reset link. Check your inbox.</value></data>
+  <data name="Forgot_BackToLogin" xml:space="preserve"><value>Back to sign in</value></data>
+  <data name="Forgot_Error" xml:space="preserve"><value>Could not send reset link. Please try again.</value></data>
+
+  <!-- ── Reset password ── -->
+  <data name="Reset_PageTitle" xml:space="preserve"><value>Choose New Password – FastGeography</value></data>
+  <data name="Reset_Heading" xml:space="preserve"><value>Choose a new password</value></data>
+  <data name="Reset_NewPassword" xml:space="preserve"><value>New password</value></data>
+  <data name="Reset_ConfirmPassword" xml:space="preserve"><value>Confirm password</value></data>
+  <data name="Reset_Submit" xml:space="preserve"><value>Update password</value></data>
+  <data name="Reset_Busy" xml:space="preserve"><value>Updating…</value></data>
+  <data name="Reset_Success" xml:space="preserve"><value>Your password has been updated. You can sign in now.</value></data>
+  <data name="Reset_SignIn" xml:space="preserve"><value>Sign in</value></data>
+  <data name="Reset_InvalidLink" xml:space="preserve"><value>This reset link is invalid or incomplete. Request a new one.</value></data>
+  <data name="Reset_PasswordMismatch" xml:space="preserve"><value>Passwords do not match.</value></data>
+  <data name="Reset_Error" xml:space="preserve"><value>Could not reset password. The link may have expired.</value></data>
 
   <!-- ── Register ── -->
   <data name="Reg_PageTitle" xml:space="preserve"><value>Register – FastGeography</value></data>
@@ -228,4 +263,30 @@
   <data name="Badge_SolarSpectre" xml:space="preserve"><value>Solar Spectre</value></data>
   <data name="Badge_GalacticSurfer" xml:space="preserve"><value>Galactic Surfer</value></data>
   <data name="Badge_GalacticConqueror" xml:space="preserve"><value>Galactic Conqueror</value></data>
+
+  <!-- ── How to Play ── -->
+  <data name="HowTo_PageTitle" xml:space="preserve"><value>How to Play – FastGeography</value></data>
+  <data name="HowTo_Heading" xml:space="preserve"><value>How to Play</value></data>
+  <data name="HowTo_Intro" xml:space="preserve"><value>FastGeography is a geography word game. Every round gives you a random letter and a countdown — fill in real places for each category before time runs out.</value></data>
+  <data name="HowTo_RoundHeading" xml:space="preserve"><value>How a round works</value></data>
+  <data name="HowTo_RoundDesc" xml:space="preserve"><value>You have {0} seconds to enter a city, village, country, river, and mountain that all start with the round letter. Tap Check (or submit when the timer ends) to score your answers.</value></data>
+  <data name="HowTo_ScoringHeading" xml:space="preserve"><value>Scoring</value></data>
+  <data name="HowTo_ScoringColResult" xml:space="preserve"><value>Result</value></data>
+  <data name="HowTo_ScoringColPoints" xml:space="preserve"><value>Points</value></data>
+  <data name="HowTo_ScoringValid" xml:space="preserve"><value>Valid place of the correct type</value></data>
+  <data name="HowTo_ScoringBlank" xml:space="preserve"><value>Left blank</value></data>
+  <data name="HowTo_ScoringInvalid" xml:space="preserve"><value>Not a matching place (wrong type or unknown)</value></data>
+  <data name="HowTo_ScoringWrongLetter" xml:space="preserve"><value>Does not start with the round letter</value></data>
+  <data name="HowTo_StoriesNote" xml:space="preserve"><value>Valid answers can unlock short destination stories with photos.</value></data>
+  <data name="HowTo_ModesHeading" xml:space="preserve"><value>Game modes</value></data>
+  <data name="HowTo_CasualTitle" xml:space="preserve"><value>Casual Play</value></data>
+  <data name="HowTo_CasualDesc" xml:space="preserve"><value>Practice on your own with no account required. Scores stay on your device and are not saved to the global scoreboard. Great for learning the rules and trying new letters.</value></data>
+  <data name="HowTo_CasualPlayBtn" xml:space="preserve"><value>Play Casual</value></data>
+  <data name="HowTo_RankedTitle" xml:space="preserve"><value>Ranked</value></data>
+  <data name="HowTo_RankedDesc" xml:space="preserve"><value>Sign in and play solo rounds that count toward your career points. Your total appears on the global scoreboard and earns explorer badges as you climb.</value></data>
+  <data name="HowTo_RankedPlayBtn" xml:space="preserve"><value>Play Ranked</value></data>
+  <data name="HowTo_MultiTitle" xml:space="preserve"><value>Multiplayer</value></data>
+  <data name="HowTo_MultiDesc" xml:space="preserve"><value>Sign in, create or join a room with a 6-character code, and play live with friends. The host starts each round; everyone gets the same letter and timer. Sets are {0} rounds — compare scores after each round and start a new set when finished. If you leave by accident, use Return to room from the menu.</value></data>
+  <data name="HowTo_MultiPlayBtn" xml:space="preserve"><value>Play Multiplayer</value></data>
+  <data name="HowTo_SignInToPlay" xml:space="preserve"><value>Sign in to play</value></data>
 </root>

@@ -5,6 +5,7 @@
 @inject CookieAuthenticationStateProvider Auth
 @inject NavigationManager Nav
 @inject ActiveMultiplayerRoomState ActiveRoom
+@inject GameLanguageState Language
 @inject ILogger<MultiplayerGame> Logger
 @inject IStringLocalizer<UiStrings> L
 
@@ -49,6 +50,14 @@
         <div class="alert alert-danger alert-dismissible">
             @_error
             <button class="btn-close" @onclick="() => _error = null"></button>
+        </div>
+    }
+
+    @if (_showLangMismatchBanner)
+    {
+        <div class="alert alert-warning alert-dismissible">
+            @string.Format(L["MpGame_LangMismatch"]!, RoomLanguageName(_languageCode), UiLanguageName(Language.Code))
+            <button class="btn-close" @onclick="() => _showLangMismatchBanner = false"></button>
         </div>
     }
 
@@ -222,10 +231,12 @@
     private readonly List<CompletedRoundRow> _myRows = [];
     private string _myDisplayName = string.Empty;
     private string _languageCode = "en";
+    private bool _showLangMismatchBanner;
     private int _mySetPoints => _myRows.Sum(r => r.Details.Sum(d => d.Points));
 
     protected override async Task OnInitializedAsync()
     {
+        await Language.EnsureLoadedAsync();
         _myDisplayName = Auth.CurrentUser?.DisplayName ?? string.Empty;
         await Connect();
     }
@@ -246,6 +257,8 @@
             _roundsCompleted = state.RoundsCompletedInSet;
             _setComplete = state.SetComplete;
             _languageCode = state.LanguageCode;
+            _showLangMismatchBanner = !string.Equals(
+                Language.Code, state.LanguageCode, StringComparison.OrdinalIgnoreCase);
             _myRows.Clear();
             _myRows.AddRange(state.MyCompletedRounds);
             _isHost = !string.IsNullOrEmpty(_myDisplayName) && state.HostName == _myDisplayName;
@@ -447,6 +460,11 @@
 
         return merged;
     }
+
+    private string RoomLanguageName(string languageCode) =>
+        languageCode == "mk" ? L["MpGame_LangMk"].Value : L["MpGame_LangEn"].Value;
+
+    private string UiLanguageName(string languageCode) => RoomLanguageName(languageCode);
 
     public async ValueTask DisposeAsync()
     {

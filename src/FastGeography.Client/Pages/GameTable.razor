@@ -46,6 +46,9 @@
     @if (!games.Any())
     {
         <p><em>@L["Game_NoGameStarted"]</em></p>
+        <p class="mb-0">
+            <a href="/how-to-play">@L["Game_HowToPlayLink"]</a>
+        </p>
     }
 
     @if (games.Any())
